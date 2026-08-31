@@ -247,14 +247,6 @@ export default function ClassroomPage() {
     const result = engine.evaluateAnswer(currentLessonId, chosenIndex)
     setEvaluation(result)
     setPhase('evaluating')
-
-    setTimeout(() => {
-      if (result.isCorrect) {
-        setPhase('continuing')
-      } else {
-        setPhase('reexplaining')
-      }
-    }, 1200)
   }
 
   function resumeLesson() {
@@ -649,6 +641,21 @@ export default function ClassroomPage() {
                     <p>{evaluation?.reexplanation ?? lesson.reexplanation}</p>
                   </div>
                 )}
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <Button
+                    className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white"
+                    onClick={() => {
+                      if (isCorrectAnswer) {
+                        setPhase('continuing')
+                      } else {
+                        setPhase('reexplaining')
+                      }
+                    }}
+                  >
+                    {isCorrectAnswer ? 'Next segment' : 'Continue lesson'}
+                    <ChevronRight className="ml-2 size-4" />
+                  </Button>
+                </div>
               </div>
             )}
 

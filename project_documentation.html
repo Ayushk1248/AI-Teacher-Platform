@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumina — AI Teacher Platform Architecture & Technical Documentation</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --card-border: #1f293d;
+      --primary: #38bdf8;
+      --primary-gradient: linear-gradient(135deg, #38bdf8, #818cf8);
+      --accent: #a855f7;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --code-bg: #030712;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 3rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 1.125rem;
+      color: var(--text-muted);
+    }
+
+    section {
+      margin-bottom: 3rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 1.25rem;
+      display: flex;
+      items-center: center;
+      gap: 0.5rem;
+      border-left: 4px solid var(--primary);
+      padding-left: 0.75rem;
+    }
+
+    h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 1.5rem 0 0.75rem 0;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .tech-pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+    }
+
+    .tech-pill h4 {
+      color: #ffffff;
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .tech-pill p {
+      font-size: 0.85rem;
+      margin-bottom: 0;
+    }
+
+    pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      overflow-x: auto;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+      font-size: 0.875rem;
+      color: #e5e7eb;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.85em;
+      color: var(--primary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.03);
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    td {
+      color: var(--text-muted);
+    }
+
+    td strong {
+      color: #ffffff;
+    }
+
+    ul, ol {
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    footer {
+      text-align: center;
+      padding-top: 2rem;
+      border-top: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">Technical Reference</span>
+      <h1>Lumina — AI Teacher Platform</h1>
+      <p class="subtitle">Complete Technical Architecture, File Structure, Security Model & Database Reference</p>
+    </header>
+
+    <!-- SECTION: TECH STACK -->
+    <section>
+      <h2>1. Technology Stack</h2>
+      <div class="grid">
+        <div class="tech-pill">
+          <h4>Framework & Core</h4>
+          <p>Next.js 16.3.3 (App Router with Turbopack), React 19, TypeScript 5.7.3</p>
+        </div>
+        <div class="tech-pill">
+          <h4>Styling & UI</h4>
+          <p>Tailwind CSS v4 (`@tailwindcss/postcss`), Lucide React icons, Base UI primitives</p>
+        </div>
+        <div class="tech-pill">
+          <h4>Backend & Storage</h4>
+          <p>Supabase PostgreSQL Database, Supabase Auth (`@supabase/ssr`), Supabase Private Storage</p>
+        </div>
+        <div class="tech-pill">
+          <h4>Authentication</h4>
+          <p>OAuth 2.0 (Google, GitHub), Email/Password sign-in, NextAuth v5 integration</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: FILE STRUCTURE -->
+    <section>
+      <h2>2. Complete Folder & File Structure</h2>
+      <div class="card">
+        <pre>
+ai-teacher-platform/
+├── app/                              # Next.js App Router root
+│   ├── (app)/                        # Protected authenticated application routes layout
+│   │   ├── classroom/                # Interactive AI Classroom page (live teaching engine)
+│   │   │   └── page.tsx
+│   │   ├── dashboard/                # Main student dashboard & progress metrics
+│   │   │   └── page.tsx
+│   │   ├── lesson-plan/              # Personalised lesson plan generator
+│   │   │   └── page.tsx
+│   │   ├── materials/                # User materials & educational document library
+│   │   │   └── page.tsx
+│   │   ├── personalize/              # Learning preference & teaching style customizer
+│   │   │   └── page.tsx
+│   │   ├── progress/                 # Student progress tracking & reporting
+│   │   │   ├── assessment/           # Checkpoint quiz & assessment interface
+│   │   │   │   └── page.tsx
+│   │   │   ├── path/                 # Visual learning roadmap
+│   │   │   │   └── page.tsx
+│   │   │   └── report/               # Detailed learning report & mastery breakdown
+│   │   │       └── page.tsx
+│   │   ├── settings/                 # Account settings & Danger Zone (Delete Account)
+│   │   │   └── page.tsx
+│   │   ├── start/                    # Start learning / new topic wizard
+│   │   │   └── page.tsx
+│   │   └── layout.tsx                # Sidebar + Topbar wrapper for authenticated app
+│   ├── api/                          # Backend API routes
+│   │   ├── auth/                     # Authentication API handlers
+│   │   │   ├── [...nextauth]/        # NextAuth handler (Google/GitHub provider sync)
+│   │   │   │   └── route.ts
+│   │   │   └── delete-account/       # Secure server-side user deletion (admin client)
+│   │   │       └── route.ts
+│   │   ├── materials/                # GET, POST (upload), DELETE handlers for materials
+│   │   │   └── route.ts
+│   │   └── progress/                 # Student assessment submission & retrieval API
+│   │       └── assessment/
+│   │           └── route.ts
+│   ├── auth/                         # OAuth callback handling
+│   │   └── callback/
+│   │       └── page.tsx
+│   ├── login/                        # Public login page
+│   │   └── page.tsx
+│   ├── reset-password/               # Password reset page
+│   │   └── page.tsx
+│   ├── setup-profile/                # New user profile setup
+│   │   └── page.tsx
+│   ├── signup/                       # User signup page
+│   │   └── page.tsx
+│   ├── layout.tsx                    # Root HTML layout & fonts
+│   ├── globals.css                   # Global CSS styles & design tokens
+│   └── page.tsx                      # Public landing page
+├── components/                       # React UI Components
+│   ├── app/                          # Application-specific UI components
+│   │   ├── app-sidebar.tsx           # Main navigation sidebar
+│   │   ├── app-topbar.tsx            # Header bar with user profile dropdown
+│   │   ├── ask-teacher-panel.tsx     # Slide-over AI teacher Q&A panel
+│   │   ├── delete-account-button.tsx # Confirmation modal & action for account deletion
+│   │   ├── nav-items.ts              # Sidebar route definition & menu items
+│   │   ├── option-group.tsx          # Multi-choice UI selection components
+│   │   ├── page-header.tsx           # Standardized page title header
+│   │   └── sign-out-button.tsx       # Sign out confirmation modal & action
+│   ├── landing/                      # Landing page components
+│   ├── ui/                           # Reusable design system primitives
+│   │   ├── badge.tsx
+│   │   ├── button.tsx
+│   │   ├── card.tsx
+│   │   ├── link-button.tsx
+│   │   └── progress.tsx
+│   ├── logo.tsx                      # Lumina platform logo component
+│   └── providers.tsx                 # React Context providers wrapper
+├── lib/                              # Core libraries, utilities & engines
+│   ├── auth/                         # Supabase authentication helper library
+│   │   └── supabase-auth.ts
+│   ├── supabase/                     # Supabase client initializers
+│   │   ├── client.ts                 # Browser client (createSupabaseBrowserClient)
+│   │   └── server.ts                 # Server client (createSupabaseServerClient)
+│   ├── format-date.ts                # Relative date formatting utility ("3 days ago")
+│   ├── mock-data.ts                  # Demonstration course & fallback data
+│   ├── teacher-engine.ts             # MockTeacherEngine interactive logic
+│   └── utils.ts                      # ClassName merger (`cn`)
+├── supabase/                         # Database schema & storage migrations
+│   └── migrations/
+│       ├── 20260831_create_application_schema.sql  # Base tables & RLS policies
+│       ├── 20260831_assessment_results.sql         # Assessment results schema
+│       ├── 20260831_materials_storage.sql          # Materials table, bucket & storage RLS
+│       └── 20260831_lesson_progress_persistence.sql # Lesson state tracking columns
+├── .env.example                      # Example environment variables template
+├── .env.local                        # Local secret keys & environment variables
+├── auth.ts                           # Server session helper (`auth()`)
+├── middleware.ts                     # Next.js route protection & session middleware
+├── next.config.mjs                   # Next.js configuration
+├── package.json                      # Project dependencies & scripts
+├── tsconfig.json                     # TypeScript configuration
+└── project_documentation.html       # This technical documentation file
+        </pre>
+      </div>
+    </section>
+
+    <!-- SECTION: DATABASE SCHEMA -->
+    <section>
+      <h2>3. Database Schema & RLS Security</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Table Name</th>
+              <th>Primary Key</th>
+              <th>Foreign Keys / References</th>
+              <th>Purpose & RLS Rule</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>profiles</strong></td>
+              <td><code>id</code> (UUID)</td>
+              <td><code>auth.users(id)</code> (Cascade)</td>
+              <td>Stores username, display name, email. RLS: <code>auth.uid() = id</code></td>
+            </tr>
+            <tr>
+              <td><strong>courses</strong></td>
+              <td><code>id</code> (UUID)</td>
+              <td><code>created_by → profiles(id)</code></td>
+              <td>Stores course metadata & default demo courses. RLS enabled.</td>
+            </tr>
+            <tr>
+              <td><strong>lessons</strong></td>
+              <td><code>id</code> (UUID)</td>
+              <td><code>course_id → courses(id)</code></td>
+              <td>Lesson steps, order index, content payload.</td>
+            </tr>
+            <tr>
+              <td><strong>user_courses</strong></td>
+              <td><code>id</code> (UUID)</td>
+              <td><code>user_id → profiles(id)</code>, <code>course_id → courses(id)</code></td>
+              <td>Student course enrollments. RLS: <code>auth.uid() = user_id</code></td>
+            </tr>
+            <tr>
+              <td><strong>lesson_progress</strong></td>
+              <td><code>id</code> (UUID)</td>
+              <td><code>user_id → profiles(id)</code>, <code>lesson_id → lessons(id)</code></td>
+              <td>Tracks status, current phase, paused state, snapshot JSON. RLS enabled.</td>
+            </tr>
+            <tr>
+              <td><strong>assessments</strong></td>
+              <td><code>id</code> (UUID)</td>
+              <td><code>user_id → profiles(id)</code>, <code>lesson_id → lessons(id)</code></td>
+              <td>Historical assessment scores. RLS: <code>auth.uid() = user_id</code></td>
+            </tr>
+            <tr>
+              <td><strong>materials</strong></td>
+              <td><code>id</code> (UUID)</td>
+              <td><code>user_id → auth.users(id)</code> (Cascade)</td>
+              <td>Document metadata & storage path. RLS: <code>auth.uid() = user_id</code></td>
+            </tr>
+            <tr>
+              <td><strong>assessment_results</strong></td>
+              <td><code>id</code> (UUID)</td>
+              <td><code>user_id → auth.users(id)</code> (Cascade)</td>
+              <td>Quiz history, correct/missed items, strong/weak areas. RLS enabled.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Storage Bucket</h3>
+        <ul>
+          <li><strong>Bucket ID:</strong> <code>materials</code> (Private, `public = false`)</li>
+          <li><strong>Folder Path Convention:</strong> <code>materials/{user_id}/{uuid}_{filename}</code></li>
+          <li><strong>Storage RLS:</strong> Read, upload, and delete policies enforce <code>(storage.foldername(name))[1] = auth.uid()::text</code>.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SECTION: AUTH & SECURITY -->
+    <section>
+      <h2>4. Authentication & Security Architecture</h2>
+      <div class="card">
+        <h3>Middleware Guard</h3>
+        <p>The <code>middleware.ts</code> script intercepts all incoming requests to protected routes (<code>/dashboard</code>, <code>/classroom</code>, <code>/materials</code>, <code>/progress</code>, <code>/settings</code>, etc.). Unauthenticated requests are automatically redirected to <code>/login?callbackUrl=...</code>.</p>
+
+        <h3>Account Deletion & Data Wiping</h3>
+        <p>Account deletion is executed exclusively on the server via <code>POST /api/auth/delete-account</code>:</p>
+        <ol>
+          <li>The caller's session is validated via cookies using <code>supabase.auth.getUser()</code>.</li>
+          <li>The user's private files are removed from Supabase Storage.</li>
+          <li>The user is deleted from Supabase Auth using the server-only <code>SUPABASE_SERVICE_ROLE_KEY</code> client (<code>admin.deleteUser(userId)</code>).</li>
+          <li>PostgreSQL <code>ON DELETE CASCADE</code> constraints automatically wipe all corresponding profile, course enrollment, lesson progress, assessment, and material metadata records.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- SECTION: API ROUTES -->
+    <section>
+      <h2>5. Backend API Endpoints Reference</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>HTTP Method</th>
+              <th>Endpoint Path</th>
+              <th>Authentication</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>GET</code></td>
+              <td><code>/api/materials</code></td>
+              <td>Required (Cookie Session)</td>
+              <td>Returns array of uploaded materials for the authenticated user.</td>
+            </tr>
+            <tr>
+              <td><code>POST</code></td>
+              <td><code>/api/materials</code></td>
+              <td>Required (Cookie Session)</td>
+              <td>Uploads a file to Supabase Storage and records metadata row in DB.</td>
+            </tr>
+            <tr>
+              <td><code>DELETE</code></td>
+              <td><code>/api/materials</code></td>
+              <td>Required (Cookie Session)</td>
+              <td>Removes file from Storage and deletes DB record.</td>
+            </tr>
+            <tr>
+              <td><code>GET</code></td>
+              <td><code>/api/progress/assessment</code></td>
+              <td>Required (Cookie Session)</td>
+              <td>Retrieves the latest assessment result for a given <code>lessonId</code>.</td>
+            </tr>
+            <tr>
+              <td><code>POST</code></td>
+              <td><code>/api/progress/assessment</code></td>
+              <td>Required (Cookie Session)</td>
+              <td>Scores checkpoint answers, generates strong/weak report, and upserts to DB.</td>
+            </tr>
+            <tr>
+              <td><code>POST</code></td>
+              <td><code>/api/auth/delete-account</code></td>
+              <td>Required (Cookie Session)</td>
+              <td>Deletes all user files and purges the auth account permanently.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION: OPERATIONAL COMMANDS -->
+    <section>
+      <h2>6. Operational Commands</h2>
+      <div class="card">
+        <pre>
+# Start local development server
+npm run dev
+
+# Run TypeScript type check & production build
+npx next build
+
+# Start production build server
+npm run start
+        </pre>
+      </div>
+    </section>
+
+    <footer>
+      <p>Lumina AI Teacher Platform — Technical Architecture Documentation</p>
+    </footer>
+  </div>
+</body>
+</html>
