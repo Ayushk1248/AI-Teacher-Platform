@@ -190,13 +190,27 @@ export default function MaterialsPage() {
 
   return (
     <div className="flex flex-col gap-8">
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED_TYPES}
+        className="hidden"
+        onChange={(e) => {
+          handleFileSelect(e.target.files)
+          e.target.value = ''
+        }}
+      />
+
       <PageHeader
         eyebrow="Your library"
         title="Materials"
         description="All the documents you've uploaded. Each one is stored securely in your personal library."
         actions={
           <Button
-            onClick={() => setShowUpload((s) => !s)}
+            onClick={() => {
+              setShowUpload(true)
+              inputRef.current?.click()
+            }}
             size="lg"
             className="h-10 gap-2 bg-gradient-to-r from-primary to-accent px-4 text-primary-foreground"
           >
@@ -286,13 +300,6 @@ export default function MaterialsPage() {
                   </div>
                 </>
               )}
-              <input
-                ref={inputRef}
-                type="file"
-                accept={ACCEPTED_TYPES}
-                className="hidden"
-                onChange={(e) => handleFileSelect(e.target.files)}
-              />
             </div>
           </CardContent>
         </Card>
@@ -311,7 +318,10 @@ export default function MaterialsPage() {
             </p>
           </div>
           <Button
-            onClick={() => setShowUpload(true)}
+            onClick={() => {
+              setShowUpload(true)
+              inputRef.current?.click()
+            }}
             size="lg"
             className="mt-2 gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground"
           >

@@ -83,6 +83,7 @@ export default function ClassroomPage() {
   const [responseMode, setResponseMode] = useState<ResponseMode>('mcq')
   const [selected, setSelected] = useState<number | null>(null)
   const [shortAnswer, setShortAnswer] = useState('')
+  const [answerError, setAnswerError] = useState('')
   const [showTranscript, setShowTranscript] = useState(false)
   const [showAskPanel, setShowAskPanel] = useState(false)
   const [resumePhase, setResumePhase] = useState<LessonPhase>('teaching')
@@ -235,10 +236,22 @@ export default function ClassroomPage() {
     setPhase('question')
     setSelected(null)
     setShortAnswer('')
+    setAnswerError('')
     setEvaluation(null)
   }
 
   function beginEvaluating() {
+    if (responseMode === 'freeform' && shortAnswer.trim().length === 0) {
+      setAnswerError('Please enter an answer before submitting.')
+      return
+    }
+    if (responseMode === 'mcq' && selected === null) {
+      setAnswerError('Please select an option before submitting.')
+      return
+    }
+
+    setAnswerError('')
+
     const hasValidFreeform = shortAnswer.trim().length >= 18
     const chosenIndex =
       selected ??
@@ -591,18 +604,32 @@ export default function ClassroomPage() {
                     <label className="block text-sm font-medium text-slate-200">Answer in your own words</label>
                     <textarea
                       value={shortAnswer}
-                      onChange={(e) => setShortAnswer(e.target.value)}
+                      onChange={(e) => {
+                        setShortAnswer(e.target.value)
+                        if (answerError) setAnswerError('')
+                      }}
                       placeholder="Answer in your own words..."
                       className="min-h-28 w-full rounded-2xl border border-white/10 bg-slate-950/30 p-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400/50"
                     />
                   </div>
                 )}
 
+                {answerError && (
+                  <p className="text-sm font-medium text-amber-300">{answerError}</p>
+                )}
+
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <Button variant="secondary" className="border border-white/10 bg-white/5 text-slate-200" onClick={() => setPhase('teaching')}>
                     Back to lesson
                   </Button>
-                  <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white" onClick={beginEvaluating}>
+                  <Button
+                    className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={beginEvaluating}
+                    disabled={
+                      (responseMode === 'freeform' && shortAnswer.trim().length === 0) ||
+                      (responseMode === 'mcq' && selected === null)
+                    }
+                  >
                     Submit answer
                   </Button>
                 </div>
@@ -618,7 +645,17 @@ export default function ClassroomPage() {
                 <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/5 p-4 text-sm text-slate-200">
                   {selected !== null ? classroomMcq.options[selected] : shortAnswer || 'Your response is being evaluated.'}
                 </div>
-                <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white" onClick={beginEvaluating}>
+                {answerError && (
+                  <p className="text-sm text-amber-300">{answerError}</p>
+                )}
+                <Button
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={beginEvaluating}
+                  disabled={
+                    (responseMode === 'freeform' && shortAnswer.trim().length === 0) ||
+                    (responseMode === 'mcq' && selected === null)
+                  }
+                >
                   Evaluate response
                 </Button>
               </div>
