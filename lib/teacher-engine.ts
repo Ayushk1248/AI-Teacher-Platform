@@ -8,12 +8,14 @@ export type TeacherLesson = {
   summary: string
   keyPoints: string[]
   teachingPrompt: string
+  visualPayload?: string
   question: {
     prompt: string
     options: string[]
     correctIndex: number
     explanation: string
     teacherPrompt: string
+    visualPayload?: string
   }
   reexplanation: string
   completionMessage: string
@@ -25,6 +27,7 @@ export type TeacherEvaluation = {
   correctAnswer: string
   reexplanation: string
   nextCta: string
+  visualPayload?: string
 }
 
 export type LessonContinuation = {
@@ -54,6 +57,17 @@ const teacherLessons: Record<TeacherLessonId, TeacherLesson> = {
     ],
     teachingPrompt:
       'Today we are tracing how a tiny neural network turns inputs into predictions.',
+    visualPayload: `\`\`\`python
+import numpy as np
+
+# 3-Layer Neural Network Forward Pass
+def forward_pass(x, W1, b1, W2, b2):
+    # Hidden Layer with ReLU Activation
+    h = np.maximum(0, np.dot(x, W1) + b1)
+    # Output Layer
+    y = np.dot(h, W2) + b2
+    return y
+\`\`\``,
     question: {
       prompt: 'What happens if we remove the activation function from a stacked neural network?',
       options: [
@@ -67,6 +81,11 @@ const teacherLessons: Record<TeacherLessonId, TeacherLesson> = {
         'Stacking linear layers without non-linearity is mathematically equivalent to one linear transformation, so the network can only model straight-line patterns.',
       teacherPrompt:
         'I want to check your understanding before we move on.',
+      visualPayload: `\`\`\`text
+Linear Stack:   f(x) = W2 * (W1 * x + b1) + b2
+Simplified:     f(x) = W_eff * x + b_eff
+Result:         No non-linear capacity!
+\`\`\``,
     },
     reexplanation:
       'Think of the bias as a starting offset. Even when all the inputs are zero, the neuron still has a baseline value. That is why the model can shift its decision boundary and learn patterns that are not locked to the origin.',
@@ -130,6 +149,7 @@ export class MockTeacherEngine implements TeacherEngine {
         correctAnswer: lesson.question.options[lesson.question.correctIndex],
         reexplanation: lesson.question.explanation,
         nextCta: 'Continue lesson',
+        visualPayload: lesson.question.visualPayload,
       }
     }
 
@@ -139,6 +159,7 @@ export class MockTeacherEngine implements TeacherEngine {
       correctAnswer: lesson.question.options[lesson.question.correctIndex],
       reexplanation: lesson.reexplanation,
       nextCta: 'Review concept',
+      visualPayload: lesson.question.visualPayload,
     }
   }
 

@@ -8,6 +8,7 @@ import {
   Check,
   ChevronRight,
   Circle,
+  Code2,
   Pause,
   Play,
   Radio,
@@ -90,6 +91,7 @@ export default function ClassroomPage() {
   const [askDraft, setAskDraft] = useState('')
   const [currentLessonId, setCurrentLessonId] = useState<TeacherLessonId>('ai-teacher-demo-lesson-1')
   const [evaluation, setEvaluation] = useState<TeacherEvaluation | null>(null)
+  const [currentVisualPayload, setCurrentVisualPayload] = useState<string | undefined>(undefined)
   const [userId, setUserId] = useState<string | null>(null)
   const [isLoadingProgress, setIsLoadingProgress] = useState(true)
 
@@ -219,6 +221,16 @@ export default function ClassroomPage() {
     if (isLoadingProgress || !userId) return
     void persistProgress(phase, paused, phase === 'continuing' && currentLessonId === 'ai-teacher-demo-lesson-2')
   }, [currentLessonId, isLoadingProgress, paused, persistProgress, phase, userId])
+
+  useEffect(() => {
+    if (phase === 'question' || phase === 'answering') {
+      setCurrentVisualPayload(lesson.question.visualPayload || lesson.visualPayload)
+    } else if (phase === 'evaluating' || phase === 'reexplaining') {
+      setCurrentVisualPayload(evaluation?.visualPayload || lesson.question.visualPayload || lesson.visualPayload)
+    } else {
+      setCurrentVisualPayload(lesson.visualPayload)
+    }
+  }, [phase, lesson, evaluation])
 
   function openAskTeacher() {
     setResumePhase(phase)
@@ -379,16 +391,18 @@ export default function ClassroomPage() {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(260px,0.8fr)]">
-            <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/40">
-              <div className="relative aspect-video overflow-hidden">
+            <div className={cn('grid gap-6', currentVisualPayload?.trim() ? 'grid-cols-1 lg:grid-cols-12' : 'grid-cols-1')}>
+              {/* Left side: AI Avatar (Maya) - 5 columns on lg: */}
+              <div className={cn('relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/40 p-4 sm:p-5', currentVisualPayload?.trim() ? 'lg:col-span-5' : 'w-full')}>
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(56,189,248,0.18),_transparent_50%)]" />
 
-                <div className="absolute left-4 top-4 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-200 backdrop-blur-sm">
-                  <span className="relative flex size-2 rounded-full bg-green-400" />
-                  Live AI teacher
-                </div>
+                {/* Top bar */}
+                <div className="relative z-10 flex items-center justify-between">
+                  <div className="flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-200 backdrop-blur-sm">
+                    <span className="relative flex size-2 rounded-full bg-green-400" />
+                    Live AI teacher
+                  </div>
 
-                <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
                   <Button
                     size="icon"
                     variant="secondary"
@@ -399,56 +413,66 @@ export default function ClassroomPage() {
                   </Button>
                 </div>
 
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 p-6 text-center">
-                  <div className="relative flex size-28 items-center justify-center rounded-full border border-cyan-300/35 bg-gradient-to-br from-cyan-400/20 via-blue-500/20 to-slate-900/80 shadow-[0_0_50px_rgba(34,211,238,0.28)]">
+                {/* Center Content: Avatar + Transcript (stacked flex-col) */}
+                <div className="relative z-10 my-4 flex flex-col items-center justify-center gap-3 text-center">
+                  <div className="relative flex size-24 shrink-0 items-center justify-center rounded-full border border-cyan-300/35 bg-gradient-to-br from-cyan-400/20 via-blue-500/20 to-slate-900/80 shadow-[0_0_40px_rgba(34,211,238,0.28)]">
                     <div className={cn('absolute inset-0 rounded-full border border-cyan-400/40', playing && 'animate-ping')} />
-                    <div className="flex size-16 items-center justify-center rounded-full bg-slate-900/70">
-                      <Bot className="size-8 text-cyan-300" />
+                    <div className="flex size-14 items-center justify-center rounded-full bg-slate-900/70">
+                      <Bot className="size-7 text-cyan-300" />
                     </div>
                   </div>
 
-                  <div className="max-w-xl">
+                  <div className="flex flex-col items-center">
                     <p className="text-xs uppercase tracking-[0.26em] text-cyan-300/80">AI tutor</p>
-                    <h2 className="mt-2 text-3xl font-semibold text-white">Maya</h2>
-                    <p className="mt-3 text-sm text-slate-200">{teacherNarrative}</p>
+                    <h2 className="mt-0.5 text-2xl font-semibold text-white">Maya</h2>
+                  </div>
+
+                  {/* Transcript text area with fixed max-height & overflow-y-auto */}
+                  <div className="max-h-28 w-full max-w-xl overflow-y-auto rounded-xl border border-white/10 bg-slate-950/60 p-3 text-xs sm:text-sm text-slate-200 shadow-inner">
+                    <p className="leading-relaxed">{teacherNarrative}</p>
                   </div>
                 </div>
 
-                <div className="absolute inset-x-0 bottom-0 z-10 flex items-center gap-3 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent px-4 pb-4 pt-10">
-                  <Button
-                    size="icon"
-                    className="h-11 w-11 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/20"
-                    onClick={() => {
-                      if (paused) {
-                        resumeLesson()
-                      } else {
-                        setPaused(true)
-                        setPlaying(false)
-                      }
-                    }}
-                  >
-                    {paused ? <Play className="ml-0.5 size-4" /> : <Pause className="size-4" />}
-                  </Button>
+                {/* Bottom Controls Bar */}
+                <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="icon"
+                      className="h-9 w-9 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/20"
+                      onClick={() => {
+                        if (paused) {
+                          resumeLesson()
+                        } else {
+                          setPaused(true)
+                          setPlaying(false)
+                        }
+                      }}
+                    >
+                      {paused ? <Play className="ml-0.5 size-4" /> : <Pause className="size-4" />}
+                    </Button>
 
-                  <Button
-                    variant="secondary"
-                    className="h-11 rounded-full border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
-                    onClick={() => setPhase('teaching')}
-                  >
-                    Replay
-                  </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="h-9 rounded-full border border-white/10 bg-white/5 text-xs text-slate-100 hover:bg-white/10"
+                      onClick={() => setPhase('teaching')}
+                    >
+                      Replay
+                    </Button>
 
-                  <Button
-                    variant="secondary"
-                    className="h-11 rounded-full border border-red-500/20 bg-red-500/5 text-red-200"
-                    onClick={endLesson}
-                  >
-                    End Lesson
-                  </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="h-9 rounded-full border border-red-500/20 bg-red-500/5 text-xs text-red-200"
+                      onClick={endLesson}
+                    >
+                      End Lesson
+                    </Button>
+                  </div>
 
-                  <div className="ml-auto flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400">04:12</span>
-                    <div className="w-28 overflow-hidden rounded-full bg-slate-700/70">
+                    <div className="w-20 overflow-hidden rounded-full bg-slate-700/70 sm:w-24">
                       <div
                         className="h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500"
                         style={{ width: `${Math.min(100, progressPct)}%` }}
@@ -457,6 +481,40 @@ export default function ClassroomPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Right side: Visual Blackboard container (7 columns on lg:) */}
+              {Boolean(currentVisualPayload?.trim()) && (
+                <div className="flex flex-col justify-between overflow-hidden rounded-[24px] border border-cyan-500/25 bg-slate-900/90 p-5 shadow-xl backdrop-blur-md lg:col-span-7">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="grid size-6 place-items-center rounded-lg border border-cyan-400/30 bg-cyan-500/10 text-cyan-300">
+                        <Code2 className="size-3.5" />
+                      </span>
+                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
+                        Visual Blackboard
+                      </span>
+                    </div>
+                    <Badge variant="outline" className="border-white/10 bg-slate-950/60 font-mono text-[10px] text-slate-300">
+                      {currentVisualPayload?.match(/^```([a-z]+)/i)?.[1] ?? 'code'}
+                    </Badge>
+                  </div>
+
+                  <div className="my-3 flex-1 overflow-y-auto rounded-xl border border-white/10 bg-slate-950/90 p-4">
+                    <pre className="font-mono text-xs leading-relaxed text-gray-200 whitespace-pre-wrap break-words">
+                      <code>
+                        {currentVisualPayload?.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '')}
+                      </code>
+                    </pre>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Dynamic Explanation</span>
+                    <span className="flex items-center gap-1 text-cyan-400/80">
+                      <Sparkles className="size-3" /> Live Sync
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <aside className="rounded-[24px] border border-white/10 bg-slate-900/40 p-4 sm:p-5">
