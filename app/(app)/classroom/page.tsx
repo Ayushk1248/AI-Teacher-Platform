@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   Bot,
   Captions,
@@ -18,7 +19,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { classroomMcq, classroomTranscript, currentConcept, lessonPlan } from '@/lib/mock-data'
+import { classroomMcq as defaultClassroomMcq, classroomTranscript, currentConcept as defaultCurrentConcept, lessonPlan } from '@/lib/mock-data'
 
 type LessonPhase =
   | 'teaching'
@@ -30,8 +31,42 @@ type LessonPhase =
 
 type ResponseMode = 'mcq' | 'freeform'
 
+const lessonVariants = {
+  'ai-teacher-demo-lesson-1': {
+    concept: defaultCurrentConcept,
+    question: defaultClassroomMcq,
+  },
+  'ai-teacher-demo-lesson-2': {
+    concept: {
+      ...defaultCurrentConcept,
+      title: 'How Neural Networks Learn',
+      summary: 'We trace how a model compares predictions with targets and adjusts its weights to reduce error over time.',
+      keyPoints: [
+        'Loss measures how far a prediction is from the target.',
+        'Gradients point toward the direction of greatest increase in loss.',
+        'Gradient descent updates weights to reduce the loss.',
+      ],
+    },
+    question: {
+      prompt: 'What does gradient descent primarily do during training?',
+      options: [
+        'It increases the model size to improve recall.',
+        'It changes weights in the direction that reduces loss.',
+        'It stores the training examples in a database.',
+        'It freezes all model parameters before evaluation.',
+      ],
+      correctIndex: 1,
+      explanation: 'Gradient descent updates the weights in the direction that reduces the model\'s loss, gradually improving its predictions.',
+    },
+  },
+} as const
+
 export default function ClassroomPage() {
-  const lessonKey = 'ai-teacher-demo-lesson-1'
+  const searchParams = useSearchParams()
+  const lessonKey = searchParams.get('lessonId') === 'ai-teacher-demo-lesson-2'
+    ? 'ai-teacher-demo-lesson-2'
+    : 'ai-teacher-demo-lesson-1'
+  const { concept: currentConcept, question: classroomMcq } = lessonVariants[lessonKey]
   const startedAtRef = useRef(Date.now())
   const completionRecordedRef = useRef(false)
   const [playing, setPlaying] = useState(true)
