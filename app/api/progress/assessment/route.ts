@@ -136,24 +136,40 @@ export async function POST(req: NextRequest) {
 
   const { strong, weak, recommendations } = await deriveReport(lesson, lessonId, answerRecords, scorePct)
 
-  // Look up lesson DB row (create if missing)
-  let { data: lessonRow } = await supabase
+  // Resolve the seeded lesson without creating an incomplete database row.
+  const { data: lessonRow, error: lessonLookupError } = await supabase
     .from('lessons')
     .select('id')
     .eq('title', lesson.title)
+    .eq('is_default', true)
+    .limit(1)
     .maybeSingle()
 
-  if (!lessonRow) {
-    const { data: newLesson } = await supabase
-      .from('lessons')
-      .insert({ title: lesson.title, description: lesson.subtitle })
-      .select('id')
-      .single()
-    lessonRow = newLesson
+  if (lessonLookupError) {
+    console.error('[assessment/POST] Lesson lookup failed:', lessonLookupError.message)
   }
 
-  if (!lessonRow) {
-    return NextResponse.json({ error: 'Could not resolve lesson row' }, { status: 500 })
+  // Completing an assessment completes the associated lesson in the learning path.
+  if (lessonRow) {
+    const { error: progressError } = await supabase
+      .from('lesson_progress')
+      .upsert(
+        {
+          user_id:             user.id,
+          lesson_id:           lessonRow.id,
+          status:              'completed',
+          progress_percentage: 100,
+          completed_at:        new Date().toISOString(),
+          updated_at:          new Date().toISOString(),
+        },
+        { onConflict: 'user_id,lesson_id' },
+      )
+
+    if (progressError) {
+      console.error('[assessment/POST] Progress update failed:', progressError.message)
+    }
+  } else {
+    console.error(`[assessment/POST] No default lesson found for engine lesson: ${lessonId}`)
   }
 
   // Upsert assessment result (one record per user+lesson; latest wins)
@@ -162,7 +178,7 @@ export async function POST(req: NextRequest) {
     .upsert(
       {
         user_id:         user.id,
-        lesson_id:       lessonRow.id,
+        lesson_id:       lessonRow?.id ?? null,
         lesson_key:      lessonId,
         score:           scorePct,
         correct:         correctCount,

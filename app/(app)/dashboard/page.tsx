@@ -6,19 +6,22 @@ import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { LinkButton } from '@/components/ui/link-button'
 import { PageHeader } from '@/components/app/page-header'
-import { continueLearning, stats, recommendedTopic } from '@/lib/mock-data'
+import { stats, recommendedTopic } from '@/lib/mock-data'
 import { auth } from '@/auth'
-
-const accentMap = {
-  primary: 'from-primary/20 to-primary/5 text-primary',
-  accent: 'from-accent/20 to-accent/5 text-accent',
-  success: 'from-success/20 to-success/5 text-success',
-  warning: 'from-warning/20 to-warning/5 text-warning',
-} as const
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export default async function DashboardPage() {
   const session = await auth()
   const firstName = session?.user?.name?.split(' ')[0] ?? 'there'
+  const [demoCourse, completedLessons] = await Promise.all([
+    getDemoCourse(),
+    getCompletedLessonCount(),
+  ])
+  const dashboardStats = stats.map((stat) =>
+    stat.label === 'Lessons completed'
+      ? { ...stat, value: String(completedLessons), delta: 'From your learning path' }
+      : stat,
+  )
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -39,7 +42,7 @@ export default async function DashboardPage() {
 
       {/* Stats */}
       <section aria-label="Progress stats" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
+        {dashboardStats.map((stat) => {
           const Icon = stat.icon
           return (
             <Card key={stat.label}>
@@ -71,43 +74,45 @@ export default async function DashboardPage() {
               <ArrowRight className="size-4" />
             </Link>
           </div>
-          <div className="flex flex-col gap-4">
-            {continueLearning.map((course) => (
-              <Card key={course.id} className="transition-colors hover:border-primary/40">
-                <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-                  <span
-                    className={`grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${accentMap[course.accent]}`}
-                  >
-                    <Play className="size-5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{course.subject}</Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {course.lessonsDone}/{course.lessonsTotal} lessons
-                      </span>
-                    </div>
-                    <h3 className="mt-2 truncate font-medium">{course.title}</h3>
-                    <div className="mt-3 flex items-center gap-3">
-                      <Progress value={course.progress} className="h-1.5" />
-                      <span className="w-10 shrink-0 text-right text-xs font-medium text-muted-foreground">
-                        {course.progress}%
-                      </span>
-                    </div>
+          {demoCourse ? (
+            <Card className="transition-colors hover:border-primary/40">
+              <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+                <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
+                  <Play className="size-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">Demo path</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {demoCourse.completedLessons}/{demoCourse.totalLessons} lessons
+                    </span>
                   </div>
-                  <LinkButton
-                    href="/classroom"
-                    variant="outline"
-                    size="lg"
-                    className="h-9 shrink-0 gap-1.5"
-                  >
-                    Resume
-                    <ArrowRight className="size-4" />
-                  </LinkButton>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  <h3 className="mt-2 truncate font-medium">{demoCourse.title}</h3>
+                  <div className="mt-3 flex items-center gap-3">
+                    <Progress value={demoCourse.progress} className="h-1.5" />
+                    <span className="w-10 shrink-0 text-right text-xs font-medium text-muted-foreground">
+                      {demoCourse.progress}%
+                    </span>
+                  </div>
+                </div>
+                <LinkButton
+                  href="/progress/path"
+                  variant="outline"
+                  size="lg"
+                  className="h-9 shrink-0 gap-1.5"
+                >
+                  View path
+                  <ArrowRight className="size-4" />
+                </LinkButton>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-5 text-sm text-muted-foreground">
+                Your demo learning path will appear here once your profile is ready.
+              </CardContent>
+            </Card>
+          )}
         </section>
 
         {/* Recommended */}
@@ -160,4 +165,77 @@ export default async function DashboardPage() {
       </div>
     </div>
   )
+}
+
+async function getDemoCourse() {
+  const supabase = await createSupabaseServerClient()
+  if (!supabase) return null
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data } = await supabase
+    .from('user_courses')
+    .select(`
+      courses (
+        title,
+        is_default,
+        lessons (
+          lesson_progress (status, progress_percentage)
+        )
+      )
+    `)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  const courseData = data?.courses as unknown as {
+    title: string
+    is_default: boolean
+    lessons: Array<{
+      lesson_progress: Array<{ status: string; progress_percentage: number }>
+    }>
+  } | Array<{
+    title: string
+    is_default: boolean
+    lessons: Array<{
+      lesson_progress: Array<{ status: string; progress_percentage: number }>
+    }>
+  }> | null
+  const course = Array.isArray(courseData) ? courseData[0] : courseData
+
+  if (!course?.is_default || course.lessons.length === 0) return null
+
+  const totalLessons = course.lessons.length
+  const completedLessons = course.lessons.filter((lesson) =>
+    lesson.lesson_progress?.[0]?.status === 'completed',
+  ).length
+  const totalProgress = course.lessons.reduce(
+    (sum, lesson) => sum + (lesson.lesson_progress?.[0]?.progress_percentage ?? 0),
+    0,
+  )
+
+  return {
+    title: course.title,
+    totalLessons,
+    completedLessons,
+    progress: Math.round(totalProgress / totalLessons),
+  }
+}
+
+async function getCompletedLessonCount() {
+  const supabase = await createSupabaseServerClient()
+  if (!supabase) return 0
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 0
+
+  const { count } = await supabase
+    .from('lesson_progress')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('status', 'completed')
+
+  return count ?? 0
 }
