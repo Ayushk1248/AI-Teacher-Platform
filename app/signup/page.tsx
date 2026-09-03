@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Logo } from '@/components/logo'
 import { signUpWithEmail, signInWithOAuth } from '@/lib/auth/supabase-auth'
@@ -73,7 +73,6 @@ function Spinner() {
 export default function SignupPage() {
   const router = useRouter()
   const [loading, setLoading] = useState<LoadingProvider | 'email'>(null)
-  const [slideOut, setSlideOut] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [username, setUsername] = useState('')
@@ -81,10 +80,18 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
+  useEffect(() => {
+    function restorePage() {
+      setLoading(null)
+    }
+
+    window.addEventListener('pageshow', restorePage)
+    return () => window.removeEventListener('pageshow', restorePage)
+  }, [])
+
   async function handleSignUp(provider: 'google' | 'github') {
     setError('')
     setLoading(provider)
-    setSlideOut(true)
 
     try {
       const { error } = await signInWithOAuth(provider)
@@ -93,7 +100,6 @@ export default function SignupPage() {
       }
     } catch {
       setLoading(null)
-      setSlideOut(false)
       setError('Something went wrong. Please try again.')
     }
   }
@@ -168,9 +174,7 @@ export default function SignupPage() {
 
       {/* ── Sign up card ── */}
       <div
-        className={`relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 px-8 py-10 shadow-2xl backdrop-blur-xl ${
-          slideOut ? 'anim-slide-out' : 'anim-slide-in-up'
-        }`}
+        className="anim-slide-in-up relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 px-8 py-10 shadow-2xl backdrop-blur-xl"
       >
         <div className="mb-6 flex justify-center">
           <Logo href="/" />
@@ -279,13 +283,6 @@ export default function SignupPage() {
           animation: kSlideInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
 
-        @keyframes kSlideOut {
-          from { opacity: 1; transform: translateX(0);    }
-          to   { opacity: 0; transform: translateX(80px); }
-        }
-        .anim-slide-out {
-          animation: kSlideOut 0.32s cubic-bezier(0.55, 0, 1, 0.45) both;
-        }
       `}</style>
     </div>
   )

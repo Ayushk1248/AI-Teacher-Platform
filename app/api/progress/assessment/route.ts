@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { MockTeacherEngine, type TeacherLessonId } from '@/lib/teacher-engine'
+import { MockTeacherEngine, type TeacherLessonId, type TeacherLesson } from '@/lib/teacher-engine'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -8,7 +8,7 @@ type AnswerRecord = {
   questionId: string
   questionText: string
   selectedIndex: number
-  correctIndex: number
+  correctIndex?: number
   isCorrect: boolean
   explanation: string
 }
@@ -31,17 +31,18 @@ const LESSON_TOPICS: Record<TeacherLessonId, { areas: string[]; weakAreas: strin
  * Uses the MockTeacherEngine to produce per-answer feedback, then groups
  * correct answers into "strong" and wrong answers into "weak".
  */
-function deriveReport(
-  lessonId: TeacherLessonId,
+async function deriveReport(
+  lesson: TeacherLesson,
+  lessonId: string,
   answers: AnswerRecord[],
   scorePct: number,
 ) {
   const engine = new MockTeacherEngine()
-  const topics = LESSON_TOPICS[lessonId]
+  const topics = LESSON_TOPICS[lessonId] || { areas: [], weakAreas: [] }
 
   // Build per-question evaluations
-  const evaluations = answers.map((a) =>
-    engine.evaluateAnswer(lessonId, a.selectedIndex),
+  const evaluations = await Promise.all(
+    answers.map((a) => engine.evaluateAnswer(lesson, a.selectedIndex))
   )
 
   const correctCount  = answers.filter((a) => a.isCorrect).length
@@ -55,7 +56,7 @@ function deriveReport(
 
   // Weak areas: every incorrectly-answered question maps to a weak area
   const weak = incorrectAnswers.map((a, i) => ({
-    area: topics.weakAreas[i % topics.weakAreas.length] ?? `Question ${a.questionId}`,
+    area: topics.weakAreas[i % Math.max(1, topics.weakAreas.length)] ?? `Question ${a.questionId}`,
     mastery: Math.max(20, Math.round(40 - i * 8 + Math.random() * 15)),
   }))
 
@@ -70,9 +71,9 @@ function deriveReport(
   ]
 
   // Always add at least one forward-looking recommendation
-  const continuation = engine.continueLesson(lessonId)
+  const continuation = await engine.continueLesson(lessonId)
   if (continuation.nextLessonId) {
-    const nextLesson = engine.getLessonById(continuation.nextLessonId)
+    const nextLesson = await engine.getLessonById(continuation.nextLessonId)
     recommendations.push(
       `Next: "${nextLesson.title}" — ${nextLesson.objective}`,
     )
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest) {
 
   // Resolve lesson via engine
   const engine = new MockTeacherEngine()
-  const lesson = engine.getLessonById(lessonId)
+  const lesson = await engine.getLessonById(lessonId)
   const question = lesson.question
 
   // Build detailed answer records
@@ -133,7 +134,7 @@ export async function POST(req: NextRequest) {
   const secs    = timeSpentSeconds % 60
   const timeSpent = minutes > 0 ? `${minutes}m ${secs}s` : `${secs}s`
 
-  const { strong, weak, recommendations } = deriveReport(lessonId, answerRecords, scorePct)
+  const { strong, weak, recommendations } = await deriveReport(lesson, lessonId, answerRecords, scorePct)
 
   // Look up lesson DB row (create if missing)
   let { data: lessonRow } = await supabase

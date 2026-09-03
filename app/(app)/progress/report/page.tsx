@@ -64,10 +64,10 @@ export default async function LearningReportPage() {
 
   // If we have a real report, derive next-lesson info from the engine
   const nextLesson = report
-    ? (() => {
+    ? await (async () => {
         try {
-          const cont = engine.continueLesson(report.lesson_key)
-          return cont.nextLessonId ? engine.getLessonById(cont.nextLessonId) : null
+          const cont = await engine.continueLesson(report.lesson_key)
+          return cont.nextLessonId ? await engine.getLessonById(cont.nextLessonId) : null
         } catch {
           return null
         }
@@ -116,8 +116,8 @@ export default async function LearningReportPage() {
   }
 
   const scorePct = report.score
-  const lessonTitle = (() => {
-    try { return engine.getLessonById(report.lesson_key).title }
+  const lessonTitle = await (async () => {
+    try { return (await engine.getLessonById(report.lesson_key)).title }
     catch { return 'Your lesson' }
   })()
 

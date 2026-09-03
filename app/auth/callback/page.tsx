@@ -46,9 +46,8 @@ function AuthCallbackContent() {
         setError(result.linkingMessage)
       }
 
-      // Redirect to the appropriate page.
-      // The actual identity merge is handled by Supabase Auth; we keep the app identity tied to the authenticated user ID.
-      router.push(result.redirectUrl)
+      // Redirect to the appropriate page
+      router.replace(result.redirectUrl)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed'
       setError(message)

@@ -1,4 +1,4 @@
-export type TeacherLessonId = 'ai-teacher-demo-lesson-1' | 'ai-teacher-demo-lesson-2'
+export type TeacherLessonId = 'ai-teacher-demo-lesson-1' | 'ai-teacher-demo-lesson-2' | string
 
 export type TeacherLesson = {
   id: TeacherLessonId
@@ -10,15 +10,18 @@ export type TeacherLesson = {
   teachingPrompt: string
   visualPayload?: string
   question: {
+    type?: 'mcq' | 'freeform'
     prompt: string
-    options: string[]
-    correctIndex: number
+    options?: string[]
+    correctIndex?: number
+    expectedAnswer?: string
     explanation: string
     teacherPrompt: string
     visualPayload?: string
   }
   reexplanation: string
   completionMessage: string
+  nextTopicSuggestion?: string
 }
 
 export type TeacherEvaluation = {
@@ -37,12 +40,13 @@ export type LessonContinuation = {
 }
 
 export interface TeacherEngine {
-  getLessonById(lessonId: TeacherLessonId): TeacherLesson
-  evaluateAnswer(lessonId: TeacherLessonId, selectedIndex: number): TeacherEvaluation
-  continueLesson(lessonId: TeacherLessonId): LessonContinuation
+  readonly isReal: boolean
+  getLessonById(lessonId: TeacherLessonId, topic?: string, preferences?: any): Promise<TeacherLesson>
+  evaluateAnswer(lesson: TeacherLesson, studentAnswer: any): Promise<TeacherEvaluation>
+  continueLesson(lessonId: TeacherLessonId): Promise<LessonContinuation>
 }
 
-const teacherLessons: Record<TeacherLessonId, TeacherLesson> = {
+const teacherLessons: Record<string, TeacherLesson> = {
   'ai-teacher-demo-lesson-1': {
     id: 'ai-teacher-demo-lesson-1',
     title: 'Introduction to Neural Networks',
@@ -69,6 +73,7 @@ def forward_pass(x, W1, b1, W2, b2):
     return y
 \`\`\``,
     question: {
+      type: 'mcq',
       prompt: 'What happens if we remove the activation function from a stacked neural network?',
       options: [
         'The network becomes better at learning complex shapes.',
@@ -107,6 +112,7 @@ Result:         No non-linear capacity!
     teachingPrompt:
       'Now we are looking at how the model improves its answer after each prediction.',
     question: {
+      type: 'mcq',
       prompt: 'What does gradient descent primarily do during training?',
       options: [
         'It increases the model size to improve recall.',
@@ -128,25 +134,37 @@ Result:         No non-linear capacity!
 }
 
 export class MockTeacherEngine implements TeacherEngine {
-  getLessonById(lessonId: TeacherLessonId): TeacherLesson {
-    const lesson = teacherLessons[lessonId]
+  readonly isReal = false
 
-    if (!lesson) {
-      throw new Error(`Unknown lesson: ${lessonId}`)
-    }
-
+  async getLessonById(lessonId: TeacherLessonId): Promise<TeacherLesson> {
+    // Artificial delay to simulate network
+    await new Promise(r => setTimeout(r, 600))
+    
+    // Fallback if ID doesn't exist (e.g. if a random topic ID was passed)
+    const lesson = teacherLessons[lessonId as string] ?? teacherLessons['ai-teacher-demo-lesson-1']
     return lesson
   }
 
-  evaluateAnswer(lessonId: TeacherLessonId, selectedIndex: number): TeacherEvaluation {
-    const lesson = this.getLessonById(lessonId)
-    const isCorrect = selectedIndex === lesson.question.correctIndex
+  async evaluateAnswer(lesson: TeacherLesson, studentAnswer: any): Promise<TeacherEvaluation> {
+    await new Promise(r => setTimeout(r, 800))
+    
+    let isCorrect = false
+    let correctAnswerStr = 'N/A'
+    
+    if (lesson.question.type === 'mcq' && typeof studentAnswer === 'number') {
+      isCorrect = studentAnswer === lesson.question.correctIndex
+      correctAnswerStr = lesson.question.options?.[lesson.question.correctIndex ?? 0] ?? ''
+    } else if (lesson.question.type === 'freeform') {
+      // Mock simple keyword check for freeform
+      isCorrect = typeof studentAnswer === 'string' && studentAnswer.length > 10
+      correctAnswerStr = lesson.question.expectedAnswer ?? 'A detailed correct explanation.'
+    }
 
     if (isCorrect) {
       return {
         isCorrect: true,
         feedback: 'Correct. That understanding matches the lesson objective.',
-        correctAnswer: lesson.question.options[lesson.question.correctIndex],
+        correctAnswer: correctAnswerStr,
         reexplanation: lesson.question.explanation,
         nextCta: 'Continue lesson',
         visualPayload: lesson.question.visualPayload,
@@ -156,15 +174,16 @@ export class MockTeacherEngine implements TeacherEngine {
     return {
       isCorrect: false,
       feedback: 'Not quite. The idea is close, but there is one important piece missing.',
-      correctAnswer: lesson.question.options[lesson.question.correctIndex],
+      correctAnswer: correctAnswerStr,
       reexplanation: lesson.reexplanation,
       nextCta: 'Review concept',
       visualPayload: lesson.question.visualPayload,
     }
   }
 
-  continueLesson(lessonId: TeacherLessonId): LessonContinuation {
-    const lesson = this.getLessonById(lessonId)
+  async continueLesson(lessonId: TeacherLessonId): Promise<LessonContinuation> {
+    await new Promise(r => setTimeout(r, 400))
+    const lesson = teacherLessons[lessonId as string] ?? teacherLessons['ai-teacher-demo-lesson-1']
 
     if (lessonId === 'ai-teacher-demo-lesson-1') {
       return {
@@ -182,19 +201,65 @@ export class MockTeacherEngine implements TeacherEngine {
 }
 
 export class RealTeacherEngine implements TeacherEngine {
-  getLessonById(_lessonId: TeacherLessonId): TeacherLesson {
-    throw new Error('RealTeacherEngine is not yet wired to a backend. Use MockTeacherEngine for the current app build.')
+  readonly isReal = true
+
+  async getLessonById(lessonId: TeacherLessonId, topic?: string, preferences?: any): Promise<TeacherLesson> {
+    const learnerPreferences = {
+      level: preferences?.level ?? 'Beginner',
+      language: preferences?.language ?? 'English',
+      goal: preferences?.goal ?? 'General curiosity',
+      timeMinutes: preferences?.timeMinutes ?? preferences?.time ?? 20,
+    }
+
+    const res = await fetch('/api/teacher/generate-lesson', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic: topic ?? lessonId,
+        preferences: learnerPreferences,
+      }),
+    })
+    
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(errorText || 'Failed to generate lesson from AI API.')
+    }
+    
+    const data = await res.json() as { lesson: TeacherLesson }
+    return data.lesson
   }
 
-  evaluateAnswer(_lessonId: TeacherLessonId, _selectedIndex: number): TeacherEvaluation {
-    throw new Error('RealTeacherEngine is not yet wired to a backend. Use MockTeacherEngine for the current app build.')
+  async evaluateAnswer(lesson: TeacherLesson, studentAnswer: any): Promise<TeacherEvaluation> {
+    const res = await fetch('/api/teacher/evaluate-answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lessonContext: lesson,
+        studentAnswer,
+      }),
+    })
+    
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(errorText || 'Failed to evaluate answer from AI API.')
+    }
+    
+    return res.json()
   }
 
-  continueLesson(_lessonId: TeacherLessonId): LessonContinuation {
-    throw new Error('RealTeacherEngine is not yet wired to a backend. Use MockTeacherEngine for the current app build.')
+  async continueLesson(lessonId: TeacherLessonId): Promise<LessonContinuation> {
+    // Currently, Real AI Engine continuation isn't fully backed by a separate endpoint in the original spec.
+    // It's meant to generate a new lesson ID based on previous context. For now, we mock the continuation behavior.
+    return {
+      completed: true,
+      message: 'Great job completing this AI-generated lesson.',
+    }
   }
 }
 
 export function getTeacherEngine(): TeacherEngine {
+  if (process.env.NEXT_PUBLIC_USE_REAL_AI_TEACHER === 'true') {
+    return new RealTeacherEngine()
+  }
   return new MockTeacherEngine()
 }

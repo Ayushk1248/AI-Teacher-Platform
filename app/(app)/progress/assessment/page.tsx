@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   AlertTriangle,
@@ -22,7 +22,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LinkButton } from '@/components/ui/link-button'
 import { PageHeader } from '@/components/app/page-header'
-import { MockTeacherEngine, type TeacherLessonId } from '@/lib/teacher-engine'
+import { MockTeacherEngine, type TeacherLesson, type LessonContinuation, type TeacherLessonId } from '@/lib/teacher-engine'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,10 +57,27 @@ function AssessmentContent() {
   const searchParams = useSearchParams()
   const lessonIdParam = (searchParams.get('lessonId') ?? 'ai-teacher-demo-lesson-1') as TeacherLessonId
 
-  // Resolve lesson + question via engine
-  const engine   = new MockTeacherEngine()
-  const lesson   = engine.getLessonById(lessonIdParam)
-  const question = lesson.question
+  const engine = useMemo(() => new MockTeacherEngine(), [])
+  const [lesson, setLesson] = useState<TeacherLesson | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadLesson() {
+      try {
+        const loadedLesson = await engine.getLessonById(lessonIdParam)
+        if (!cancelled) setLesson(loadedLesson)
+      } catch (error) {
+        if (cancelled) return
+
+        setLoadError('The mock assessment could not be loaded. Please refresh and try again.')
+        setLesson(await new MockTeacherEngine().getLessonById(lessonIdParam))
+      }
+    }
+
+    void loadLesson()
+    return () => { cancelled = true }
+  }, [engine, lessonIdParam])
 
   // Assessment state
   const [stage,             setStage]             = useState<'intro' | 'quiz' | 'report'>('intro')
@@ -83,7 +100,7 @@ function AssessmentContent() {
   const questionId  = `${lessonIdParam}-q1`
   const picked      = answers[questionId]
   const isAnswered  = picked !== undefined
-  const isCorrect   = picked === question.correctIndex
+  const isCorrect   = picked === lesson?.question?.correctIndex
 
   // ── Load previous result on mount ──
   useEffect(() => {
@@ -149,12 +166,25 @@ function AssessmentContent() {
         }
         description={
           stage === 'report'
-            ? `Results for "${lesson.title}" — see what landed and what to revisit.`
+            ? `Results for "${lesson?.title}" — see what landed and what to revisit.`
             : stage === 'quiz'
             ? 'Answer the checkpoint question before seeing your results.'
             : 'You just finished the live AI lesson. Take a quick check and then review your results.'
         }
       />
+
+      {/* Loading state */}
+      {!lesson && (
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-primary" />
+        </div>
+      )}
+
+      {loadError && (
+        <p className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          {loadError}
+        </p>
+      )}
 
       {/* Journey breadcrumb */}
       <div className="flex flex-wrap items-center gap-2">
@@ -177,7 +207,7 @@ function AssessmentContent() {
       </div>
 
       {/* ── INTRO ── */}
-      {stage === 'intro' && (
+      {stage === 'intro' && lesson && (
         <Card className="border-primary/30 bg-gradient-to-br from-primary/10 via-background to-accent/5">
           <CardContent className="flex flex-col gap-6 p-6 sm:p-8">
             <div className="flex items-center gap-2 text-primary">
@@ -213,7 +243,7 @@ function AssessmentContent() {
       )}
 
       {/* ── QUIZ ── */}
-      {stage === 'quiz' && (
+      {stage === 'quiz' && lesson && (
         <>
           {/* Progress indicator */}
           <Card className="border-primary/30 bg-primary/5">
@@ -235,7 +265,7 @@ function AssessmentContent() {
               <div className="flex items-start justify-between gap-3">
                 <p className="font-medium leading-snug">
                   <span className="mr-2 text-muted-foreground">1.</span>
-                  {question.prompt}
+                  {lesson.question.prompt}
                 </p>
                 {isAnswered && (
                   isCorrect
@@ -245,9 +275,9 @@ function AssessmentContent() {
               </div>
 
               <div className="grid gap-2 sm:grid-cols-2">
-                {question.options.map((opt, i) => {
+                {lesson.question.options?.map((opt: string, i: number) => {
                   const isPicked      = picked === i
-                  const showCorrect   = isAnswered && i === question.correctIndex
+                  const showCorrect   = isAnswered && i === lesson.question.correctIndex
                   const showWrong     = isAnswered && isPicked && !showCorrect
                   return (
                     <button
@@ -284,17 +314,11 @@ function AssessmentContent() {
                   isCorrect ? 'border-success/30 bg-success/10' : 'border-warning/30 bg-warning/10',
                 )}>
                   <p className="mb-1 font-medium">{isCorrect ? 'Correct!' : 'Not quite.'}</p>
-                  {question.explanation}
+                  {lesson.question.explanation}
                 </div>
               )}
             </CardContent>
           </Card>
-
-          {loadError && (
-            <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {loadError}
-            </p>
-          )}
 
           {isAnswered && (
             <button
@@ -326,13 +350,22 @@ function ReportView({
   engine,
 }: {
   report: ReportData
-  lessonId: TeacherLessonId
-  engine: MockTeacherEngine
+  lessonId: string
+  engine: any
 }) {
-  const continuation = engine.continueLesson(lessonId)
-  const nextLesson   = continuation.nextLessonId
-    ? engine.getLessonById(continuation.nextLessonId)
-    : null
+  const [continuation, setContinuation] = useState<LessonContinuation | null>(null)
+  const [nextLesson, setNextLesson] = useState<TeacherLesson | null>(null)
+
+  useEffect(() => {
+    async function load() {
+      const cont = await engine.continueLesson(lessonId)
+      setContinuation(cont)
+      if (cont.nextLessonId) {
+        setNextLesson(await engine.getLessonById(cont.nextLessonId))
+      }
+    }
+    load()
+  }, [engine, lessonId])
 
   const hasWeak = report.weak.length > 0
 
@@ -483,7 +516,7 @@ function ReportView({
             </LinkButton>
           )}
           <LinkButton
-            href={nextLesson ? `/classroom?lessonId=${continuation.nextLessonId}` : '/classroom'}
+            href={nextLesson && continuation?.nextLessonId ? `/classroom?lessonId=${continuation.nextLessonId}` : '/classroom'}
             size="lg"
             variant={hasWeak ? 'outline' : undefined}
             className={cn('h-11 gap-2 px-5', !hasWeak && 'bg-gradient-to-r from-primary to-accent text-primary-foreground')}

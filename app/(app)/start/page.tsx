@@ -414,7 +414,23 @@ export default function StartLearningPage() {
         </button>
         <Button
           size="lg"
-          onClick={() => router.push('/lesson-plan')}
+          onClick={() => {
+            // Persist session data for the classroom page
+            const timeMinutes = parseInt(time) || 20
+            const session = {
+              topic: topic.trim() || (files.length > 0 ? `Explain the content from: ${files[0]}` : 'General Learning'),
+              preferences: {
+                level,
+                language,
+                goal,
+                timeMinutes,
+              },
+            }
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('lumina_lesson_session', JSON.stringify(session))
+            }
+            router.push('/lesson-plan')
+          }}
           className="h-10 w-full gap-2 bg-gradient-to-r from-primary to-accent px-5 text-primary-foreground sm:w-auto"
         >
           <Play className="size-4" />

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Logo } from '@/components/logo'
-import { getCurrentUser, updateUserProfile, isNewUser, getLinkedIdentities } from '@/lib/auth/supabase-auth'
+import { getCurrentUser, updatePassword, updateUserProfile, isNewUser, getLinkedIdentities } from '@/lib/auth/supabase-auth'
 
 export default function SetupProfilePage() {
   const router = useRouter()
@@ -86,29 +86,36 @@ export default function SetupProfilePage() {
       return
     }
 
-    // Password is optional for OAuth users, but if provided, should match
-    if (password || confirmPassword) {
-      if (password.length < 6) {
-        setError('Password must be at least 6 characters.')
-        return
-      }
+    if (!password) {
+      setError('Please create a password so you can also sign in with your email.')
+      return
+    }
 
-      if (password !== confirmPassword) {
-        setError('Passwords do not match.')
-        return
-      }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
     }
 
     setSaving(true)
 
     try {
-      const { error } = await updateUserProfile({
+      const { error: passwordError } = await updatePassword(password)
+      if (passwordError) {
+        throw passwordError
+      }
+
+      const { error: profileError } = await updateUserProfile({
         username: username.trim(),
         full_name: username.trim(),
       })
 
-      if (error) {
-        throw error
+      if (profileError) {
+        throw profileError
       }
 
       // Profile updated successfully, redirect to dashboard
@@ -188,28 +195,28 @@ export default function SetupProfilePage() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-white/60">Password (optional)</label>
+              <label className="text-xs font-medium text-white/60">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Set a password (optional)"
+                placeholder="Create a password"
+                required
                 className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-cyan-400/50"
               />
             </div>
 
-            {password && (
-              <div>
-                <label className="text-xs font-medium text-white/60">Confirm password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm password"
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-cyan-400/50"
-                />
-              </div>
-            )}
+            <div>
+              <label className="text-xs font-medium text-white/60">Confirm password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm password"
+                required
+                className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-cyan-400/50"
+              />
+            </div>
 
             <button
               type="button"

@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Logo } from '@/components/logo'
 import { signInWithEmail, signInWithOAuth } from '@/lib/auth/supabase-auth'
@@ -78,27 +78,32 @@ function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState<LoadingProvider | 'email'>(null)
-  const [slideOut, setSlideOut] = useState(false)
   const [error, setError] = useState(searchParams.get('error') || '')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const loggedOut = searchParams.get('logged_out') === '1'
 
+  useEffect(() => {
+    function restorePage() {
+      setLoading(null)
+    }
+
+    window.addEventListener('pageshow', restorePage)
+    return () => window.removeEventListener('pageshow', restorePage)
+  }, [])
+
   async function handleSignIn(provider: 'google' | 'github') {
     setError('')
     setLoading(provider)
-    setSlideOut(true)
 
     try {
       const { error } = await signInWithOAuth(provider)
       if (error) {
         throw error
       }
-    } catch (err) {
-      const messageText = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+    } catch {
       setLoading(null)
-      setSlideOut(false)
-      setError(messageText)
+      setError('Something went wrong. Please try again.')
     }
   }
 
@@ -124,7 +129,7 @@ function LoginContent() {
       }
     } catch (err) {
       const messageText = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
-      setError(messageText)
+      setError(/invalid login credentials/i.test(messageText) ? 'Invalid email or password.' : messageText)
     } finally {
       setLoading(null)
     }
@@ -142,9 +147,7 @@ function LoginContent() {
 
       {/* ── Login card ── */}
       <div
-        className={`relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 px-8 py-10 shadow-2xl backdrop-blur-xl ${
-          slideOut ? 'anim-slide-out' : 'anim-slide-in-up'
-        }`}
+        className="anim-slide-in-up relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 px-8 py-10 shadow-2xl backdrop-blur-xl"
       >
         <div className="mb-6 flex justify-center">
           <Logo href="/" />
@@ -220,7 +223,7 @@ function LoginContent() {
             </button>
           </div>
           <div className="mt-3 flex flex-col gap-2 text-center text-xs">
-            <a href="/reset-password" className="text-cyan-400 hover:text-cyan-300 transition">
+            <a href="#" className="text-cyan-400 hover:text-cyan-300 transition">
               Forgot Password?
             </a>
             <p className="text-white/40">
@@ -242,13 +245,6 @@ function LoginContent() {
           animation: kSlideInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
 
-        @keyframes kSlideOut {
-          from { opacity: 1; transform: translateX(0);    }
-          to   { opacity: 0; transform: translateX(80px); }
-        }
-        .anim-slide-out {
-          animation: kSlideOut 0.32s cubic-bezier(0.55, 0, 1, 0.45) both;
-        }
       `}</style>
     </div>
   )

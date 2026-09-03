@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lumina — AI Teacher Platform Architecture & Technical Documentation</title>
+  <title>Lumina — AI Teacher Platform: Technical Documentation</title>
   <style>
     :root {
       --bg: #090d16;
@@ -18,26 +18,23 @@
       --warning: #fbbf24;
       --danger: #f87171;
       --code-bg: #030712;
+      --highlight-bg: rgba(56, 189, 248, 0.06);
+      --highlight-border: rgba(56, 189, 248, 0.25);
+      --ai-bg: rgba(168, 85, 247, 0.06);
+      --ai-border: rgba(168, 85, 247, 0.3);
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg);
       color: var(--text);
-      line-height: 1.6;
+      line-height: 1.7;
       padding: 2rem 1rem;
     }
 
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-    }
+    .container { max-width: 1100px; margin: 0 auto; }
 
     header {
       margin-bottom: 3rem;
@@ -59,6 +56,18 @@
       margin-bottom: 1rem;
     }
 
+    .badge-purple {
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border-color: rgba(168, 85, 247, 0.35);
+    }
+
+    .badge-green {
+      background: rgba(52, 211, 153, 0.15);
+      color: var(--success);
+      border-color: rgba(52, 211, 153, 0.3);
+    }
+
     h1 {
       font-size: 2.5rem;
       font-weight: 800;
@@ -69,38 +78,31 @@
       margin-bottom: 0.5rem;
     }
 
-    .subtitle {
-      font-size: 1.125rem;
-      color: var(--text-muted);
-    }
+    .subtitle { font-size: 1.125rem; color: var(--text-muted); }
 
-    section {
-      margin-bottom: 3rem;
-    }
+    section { margin-bottom: 3.5rem; }
 
     h2 {
       font-size: 1.5rem;
       font-weight: 700;
       color: #ffffff;
       margin-bottom: 1.25rem;
-      display: flex;
-      items-center: center;
-      gap: 0.5rem;
       border-left: 4px solid var(--primary);
       padding-left: 0.75rem;
     }
 
+    h2.ai { border-left-color: #a855f7; }
+
     h3 {
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       font-weight: 600;
       color: var(--primary);
       margin: 1.5rem 0 0.75rem 0;
     }
 
-    p {
-      margin-bottom: 1rem;
-      color: var(--text-muted);
-    }
+    h3.purple { color: #c084fc; }
+
+    p { margin-bottom: 1rem; color: var(--text-muted); }
 
     .card {
       background-color: var(--card-bg);
@@ -108,7 +110,17 @@
       border-radius: 0.75rem;
       padding: 1.5rem;
       margin-bottom: 1.5rem;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+    }
+
+    .card.ai-card {
+      background: linear-gradient(135deg, rgba(168,85,247,0.06), rgba(56,189,248,0.04));
+      border-color: rgba(168,85,247,0.25);
+    }
+
+    .card.highlight-card {
+      background: var(--highlight-bg);
+      border-color: var(--highlight-border);
     }
 
     .grid {
@@ -119,22 +131,14 @@
     }
 
     .tech-pill {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255,255,255,0.04);
       border: 1px solid var(--card-border);
       border-radius: 0.5rem;
       padding: 1rem;
     }
 
-    .tech-pill h4 {
-      color: #ffffff;
-      font-size: 0.95rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .tech-pill p {
-      font-size: 0.85rem;
-      margin-bottom: 0;
-    }
+    .tech-pill h4 { color: #ffffff; font-size: 0.95rem; margin-bottom: 0.25rem; }
+    .tech-pill p { font-size: 0.85rem; margin-bottom: 0; }
 
     pre {
       background-color: var(--code-bg);
@@ -146,11 +150,12 @@
       font-size: 0.875rem;
       color: #e5e7eb;
       line-height: 1.5;
+      margin-bottom: 1rem;
     }
 
     code {
       font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255,255,255,0.1);
       padding: 0.2rem 0.4rem;
       border-radius: 0.25rem;
       font-size: 0.85em;
@@ -170,28 +175,72 @@
       border-bottom: 1px solid var(--card-border);
     }
 
-    th {
-      background-color: rgba(255, 255, 255, 0.03);
-      color: #ffffff;
-      font-weight: 600;
+    th { background-color: rgba(255,255,255,0.03); color: #ffffff; font-weight: 600; }
+    td { color: var(--text-muted); }
+    td strong { color: #ffffff; }
+
+    ul, ol { margin-left: 1.5rem; margin-bottom: 1rem; color: var(--text-muted); }
+    li { margin-bottom: 0.5rem; }
+
+    .change-item {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .change-item:last-child { border-bottom: none; }
+
+    .change-tag {
+      display: inline-block;
+      padding: 0.15rem 0.6rem;
+      border-radius: 0.375rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
     }
 
-    td {
-      color: var(--text-muted);
+    .tag-feat { background: rgba(52,211,153,0.15); color: var(--success); border: 1px solid rgba(52,211,153,0.3); }
+    .tag-fix  { background: rgba(251,191,36,0.15); color: var(--warning); border: 1px solid rgba(251,191,36,0.3); }
+    .tag-ui   { background: rgba(56,189,248,0.15); color: var(--primary); border: 1px solid rgba(56,189,248,0.3); }
+    .tag-arch { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+
+    .change-desc { color: var(--text-muted); font-size: 0.9rem; }
+    .change-desc strong { color: #e5e7eb; }
+
+    .ai-box {
+      background: linear-gradient(135deg, rgba(168,85,247,0.08), rgba(56,189,248,0.05));
+      border: 1px solid rgba(168,85,247,0.3);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
     }
 
-    td strong {
-      color: #ffffff;
-    }
+    .ai-box h3 { color: #c084fc; margin-top: 0; }
 
-    ul, ol {
-      margin-left: 1.5rem;
+    .prompt-box {
+      background: #0a0f1e;
+      border: 1px solid rgba(168,85,247,0.4);
+      border-radius: 0.6rem;
+      padding: 1.25rem;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.84rem;
+      color: #e2e8f0;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
       margin-bottom: 1rem;
-      color: var(--text-muted);
     }
 
-    li {
-      margin-bottom: 0.5rem;
+    .copy-note {
+      font-size: 0.78rem;
+      color: #a855f7;
+      font-style: italic;
+      margin-bottom: 1.5rem;
     }
 
     footer {
@@ -205,27 +254,29 @@
 </head>
 <body>
   <div class="container">
+
     <header>
-      <span class="badge">Technical Reference</span>
+      <span class="badge">Technical Reference — Updated Sept 2026</span>
       <h1>Lumina — AI Teacher Platform</h1>
-      <p class="subtitle">Complete Technical Architecture, File Structure, Security Model & Database Reference</p>
+      <p class="subtitle">Complete Technical Architecture, File Structure, Security Model, Database Reference &amp; AI Integration Guide</p>
     </header>
 
-    <!-- SECTION: TECH STACK -->
+
+    <!-- ========== SECTION 1: TECH STACK ========== -->
     <section>
       <h2>1. Technology Stack</h2>
       <div class="grid">
         <div class="tech-pill">
-          <h4>Framework & Core</h4>
-          <p>Next.js 16.3.3 (App Router with Turbopack), React 19, TypeScript 5.7.3</p>
+          <h4>Framework &amp; Core</h4>
+          <p>Next.js 16.3.3 (App Router, Turbopack), React 19, TypeScript 5.7.3</p>
         </div>
         <div class="tech-pill">
-          <h4>Styling & UI</h4>
-          <p>Tailwind CSS v4 (`@tailwindcss/postcss`), Lucide React icons, Base UI primitives</p>
+          <h4>Styling &amp; UI</h4>
+          <p>Tailwind CSS v4 (<code>@tailwindcss/postcss</code>), Lucide React icons, custom UI primitives</p>
         </div>
         <div class="tech-pill">
-          <h4>Backend & Storage</h4>
-          <p>Supabase PostgreSQL Database, Supabase Auth (`@supabase/ssr`), Supabase Private Storage</p>
+          <h4>Backend &amp; Storage</h4>
+          <p>Supabase PostgreSQL, Supabase Auth (<code>@supabase/ssr</code>), Supabase Private Storage Bucket</p>
         </div>
         <div class="tech-pill">
           <h4>Authentication</h4>
@@ -234,133 +285,134 @@
       </div>
     </section>
 
-    <!-- SECTION: FILE STRUCTURE -->
+
+    <!-- ========== SECTION 2: FILE STRUCTURE ========== -->
     <section>
-      <h2>2. Complete Folder & File Structure</h2>
+      <h2>2. Complete Folder &amp; File Structure</h2>
       <div class="card">
         <pre>
 ai-teacher-platform/
 ├── app/                              # Next.js App Router root
-│   ├── (app)/                        # Protected authenticated application routes layout
-│   │   ├── classroom/                # Interactive AI Classroom page (live teaching engine)
+│   ├── (app)/                        # Protected authenticated routes layout
+│   │   ├── classroom/                # AI Classroom page (live teaching engine)
+│   │   │   └── page.tsx              ★ HEAVILY MODIFIED (see Section 7)
+│   │   ├── dashboard/
 │   │   │   └── page.tsx
-│   │   ├── dashboard/                # Main student dashboard & progress metrics
+│   │   ├── lesson-plan/
 │   │   │   └── page.tsx
-│   │   ├── lesson-plan/              # Personalised lesson plan generator
+│   │   ├── materials/
+│   │   │   └── page.tsx              ★ MODIFIED (upload button fix)
+│   │   ├── personalize/
 │   │   │   └── page.tsx
-│   │   ├── materials/                # User materials & educational document library
-│   │   │   └── page.tsx
-│   │   ├── personalize/              # Learning preference & teaching style customizer
-│   │   │   └── page.tsx
-│   │   ├── progress/                 # Student progress tracking & reporting
-│   │   │   ├── assessment/           # Checkpoint quiz & assessment interface
+│   │   ├── progress/
+│   │   │   ├── assessment/
+│   │   │   │   └── page.tsx          ★ MODIFIED (Suspense fix)
+│   │   │   ├── path/
 │   │   │   │   └── page.tsx
-│   │   │   ├── path/                 # Visual learning roadmap
-│   │   │   │   └── page.tsx
-│   │   │   └── report/               # Detailed learning report & mastery breakdown
+│   │   │   └── report/
 │   │   │       └── page.tsx
-│   │   ├── settings/                 # Account settings & Danger Zone (Delete Account)
+│   │   ├── settings/
 │   │   │   └── page.tsx
-│   │   ├── start/                    # Start learning / new topic wizard
+│   │   ├── start/
 │   │   │   └── page.tsx
-│   │   └── layout.tsx                # Sidebar + Topbar wrapper for authenticated app
-│   ├── api/                          # Backend API routes
-│   │   ├── auth/                     # Authentication API handlers
-│   │   │   ├── [...nextauth]/        # NextAuth handler (Google/GitHub provider sync)
+│   │   └── layout.tsx
+│   ├── api/
+│   │   ├── auth/
+│   │   │   ├── [...nextauth]/
 │   │   │   │   └── route.ts
-│   │   │   └── delete-account/       # Secure server-side user deletion (admin client)
+│   │   │   └── delete-account/       ★ NEW — server-side admin user deletion
 │   │   │       └── route.ts
-│   │   ├── materials/                # GET, POST (upload), DELETE handlers for materials
-│   │   │   └── route.ts
-│   │   └── progress/                 # Student assessment submission & retrieval API
+│   │   ├── materials/
+│   │   │   └── route.ts              ★ MODIFIED (auto-bucket creation)
+│   │   └── progress/
 │   │       └── assessment/
 │   │           └── route.ts
-│   ├── auth/                         # OAuth callback handling
-│   │   └── callback/
-│   │       └── page.tsx
-│   ├── login/                        # Public login page
+│   ├── auth/callback/
+│   │   └── page.tsx                  ★ MODIFIED (Suspense fix)
+│   ├── login/
+│   │   └── page.tsx                  ★ MODIFIED (Suspense fix)
+│   ├── reset-password/
 │   │   └── page.tsx
-│   ├── reset-password/               # Password reset page
+│   ├── setup-profile/
 │   │   └── page.tsx
-│   ├── setup-profile/                # New user profile setup
+│   ├── signup/
 │   │   └── page.tsx
-│   ├── signup/                       # User signup page
-│   │   └── page.tsx
-│   ├── layout.tsx                    # Root HTML layout & fonts
-│   ├── globals.css                   # Global CSS styles & design tokens
-│   └── page.tsx                      # Public landing page
-├── components/                       # React UI Components
-│   ├── app/                          # Application-specific UI components
-│   │   ├── app-sidebar.tsx           # Main navigation sidebar
-│   │   ├── app-topbar.tsx            # Header bar with user profile dropdown
-│   │   ├── ask-teacher-panel.tsx     # Slide-over AI teacher Q&A panel
-│   │   ├── delete-account-button.tsx # Confirmation modal & action for account deletion
-│   │   ├── nav-items.ts              # Sidebar route definition & menu items
-│   │   ├── option-group.tsx          # Multi-choice UI selection components
-│   │   ├── page-header.tsx           # Standardized page title header
-│   │   └── sign-out-button.tsx       # Sign out confirmation modal & action
-│   ├── landing/                      # Landing page components
-│   ├── ui/                           # Reusable design system primitives
+│   ├── layout.tsx
+│   ├── globals.css
+│   └── page.tsx
+├── components/
+│   ├── app/
+│   │   ├── app-sidebar.tsx
+│   │   ├── app-topbar.tsx
+│   │   ├── ask-teacher-panel.tsx
+│   │   ├── delete-account-button.tsx ★ NEW — Danger Zone delete button &amp; modal
+│   │   ├── nav-items.ts
+│   │   ├── option-group.tsx
+│   │   ├── page-header.tsx
+│   │   └── sign-out-button.tsx
+│   ├── landing/
+│   ├── ui/
 │   │   ├── badge.tsx
 │   │   ├── button.tsx
 │   │   ├── card.tsx
 │   │   ├── link-button.tsx
 │   │   └── progress.tsx
-│   ├── logo.tsx                      # Lumina platform logo component
-│   └── providers.tsx                 # React Context providers wrapper
-├── lib/                              # Core libraries, utilities & engines
-│   ├── auth/                         # Supabase authentication helper library
+│   ├── logo.tsx
+│   └── providers.tsx
+├── lib/
+│   ├── auth/
 │   │   └── supabase-auth.ts
-│   ├── supabase/                     # Supabase client initializers
-│   │   ├── client.ts                 # Browser client (createSupabaseBrowserClient)
-│   │   └── server.ts                 # Server client (createSupabaseServerClient)
-│   ├── format-date.ts                # Relative date formatting utility ("3 days ago")
-│   ├── mock-data.ts                  # Demonstration course & fallback data
-│   ├── teacher-engine.ts             # MockTeacherEngine interactive logic
-│   └── utils.ts                      # ClassName merger (`cn`)
-├── supabase/                         # Database schema & storage migrations
+│   ├── supabase/
+│   │   ├── client.ts
+│   │   └── server.ts
+│   ├── format-date.ts
+│   ├── mock-data.ts
+│   ├── teacher-engine.ts             ★ MODIFIED (visualPayload support)
+│   └── utils.ts
+├── supabase/
 │   └── migrations/
-│       ├── 20260831_create_application_schema.sql  # Base tables & RLS policies
-│       ├── 20260831_assessment_results.sql         # Assessment results schema
-│       ├── 20260831_materials_storage.sql          # Materials table, bucket & storage RLS
-│       └── 20260831_lesson_progress_persistence.sql # Lesson state tracking columns
-├── .env.example                      # Example environment variables template
-├── .env.local                        # Local secret keys & environment variables
-├── auth.ts                           # Server session helper (`auth()`)
-├── middleware.ts                     # Next.js route protection & session middleware
-├── next.config.mjs                   # Next.js configuration
-├── package.json                      # Project dependencies & scripts
-├── tsconfig.json                     # TypeScript configuration
-└── project_documentation.html       # This technical documentation file
+│       ├── 20260831_create_application_schema.sql
+│       ├── 20260831_assessment_results.sql
+│       ├── 20260831_materials_storage.sql        ★ MODIFIED (FK fix)
+│       └── 20260831_lesson_progress_persistence.sql
+├── .env.example
+├── .env.local
+├── auth.ts
+├── middleware.ts
+├── next.config.mjs
+├── package.json
+├── tsconfig.json
+└── project_documentation.html       ← This file
         </pre>
       </div>
     </section>
 
-    <!-- SECTION: DATABASE SCHEMA -->
+
+    <!-- ========== SECTION 3: DATABASE SCHEMA ========== -->
     <section>
-      <h2>3. Database Schema & RLS Security</h2>
+      <h2>3. Database Schema &amp; RLS Security</h2>
       <div class="card">
         <table>
           <thead>
             <tr>
-              <th>Table Name</th>
+              <th>Table</th>
               <th>Primary Key</th>
-              <th>Foreign Keys / References</th>
-              <th>Purpose & RLS Rule</th>
+              <th>Foreign Keys</th>
+              <th>Purpose &amp; RLS Rule</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><strong>profiles</strong></td>
               <td><code>id</code> (UUID)</td>
-              <td><code>auth.users(id)</code> (Cascade)</td>
-              <td>Stores username, display name, email. RLS: <code>auth.uid() = id</code></td>
+              <td><code>auth.users(id)</code> Cascade</td>
+              <td>Username, display name, email. RLS: <code>auth.uid() = id</code></td>
             </tr>
             <tr>
               <td><strong>courses</strong></td>
               <td><code>id</code> (UUID)</td>
               <td><code>created_by → profiles(id)</code></td>
-              <td>Stores course metadata & default demo courses. RLS enabled.</td>
+              <td>Course metadata &amp; demo courses. RLS enabled.</td>
             </tr>
             <tr>
               <td><strong>lessons</strong></td>
@@ -372,72 +424,73 @@ ai-teacher-platform/
               <td><strong>user_courses</strong></td>
               <td><code>id</code> (UUID)</td>
               <td><code>user_id → profiles(id)</code>, <code>course_id → courses(id)</code></td>
-              <td>Student course enrollments. RLS: <code>auth.uid() = user_id</code></td>
+              <td>Student enrollments. RLS: <code>auth.uid() = user_id</code></td>
             </tr>
             <tr>
               <td><strong>lesson_progress</strong></td>
               <td><code>id</code> (UUID)</td>
-              <td><code>user_id → profiles(id)</code>, <code>lesson_id → lessons(id)</code></td>
-              <td>Tracks status, current phase, paused state, snapshot JSON. RLS enabled.</td>
+              <td><code>user_id → profiles(id)</code></td>
+              <td>Current phase, paused state, snapshot JSON. RLS enabled.</td>
             </tr>
             <tr>
               <td><strong>assessments</strong></td>
               <td><code>id</code> (UUID)</td>
-              <td><code>user_id → profiles(id)</code>, <code>lesson_id → lessons(id)</code></td>
-              <td>Historical assessment scores. RLS: <code>auth.uid() = user_id</code></td>
+              <td><code>user_id → profiles(id)</code></td>
+              <td>Historical scores. RLS: <code>auth.uid() = user_id</code></td>
             </tr>
             <tr>
               <td><strong>materials</strong></td>
               <td><code>id</code> (UUID)</td>
-              <td><code>user_id → auth.users(id)</code> (Cascade)</td>
-              <td>Document metadata & storage path. RLS: <code>auth.uid() = user_id</code></td>
+              <td><code>user_id → auth.users(id)</code> Cascade</td>
+              <td>Document metadata &amp; storage path. RLS: <code>auth.uid() = user_id</code></td>
             </tr>
             <tr>
               <td><strong>assessment_results</strong></td>
               <td><code>id</code> (UUID)</td>
-              <td><code>user_id → auth.users(id)</code> (Cascade)</td>
-              <td>Quiz history, correct/missed items, strong/weak areas. RLS enabled.</td>
+              <td><code>user_id → auth.users(id)</code> Cascade</td>
+              <td>Quiz history, strong/weak areas. RLS enabled.</td>
             </tr>
           </tbody>
         </table>
-
         <h3>Storage Bucket</h3>
         <ul>
-          <li><strong>Bucket ID:</strong> <code>materials</code> (Private, `public = false`)</li>
-          <li><strong>Folder Path Convention:</strong> <code>materials/{user_id}/{uuid}_{filename}</code></li>
-          <li><strong>Storage RLS:</strong> Read, upload, and delete policies enforce <code>(storage.foldername(name))[1] = auth.uid()::text</code>.</li>
+          <li><strong>Bucket ID:</strong> <code>materials</code> (Private, <code>public = false</code>)</li>
+          <li><strong>Path Convention:</strong> <code>materials/{user_id}/{uuid}_{filename}</code></li>
+          <li><strong>Storage RLS:</strong> Read, upload, and delete policies enforce <code>(storage.foldername(name))[1] = auth.uid()::text</code></li>
         </ul>
       </div>
     </section>
 
-    <!-- SECTION: AUTH & SECURITY -->
+
+    <!-- ========== SECTION 4: AUTH & SECURITY ========== -->
     <section>
-      <h2>4. Authentication & Security Architecture</h2>
+      <h2>4. Authentication &amp; Security Architecture</h2>
       <div class="card">
         <h3>Middleware Guard</h3>
-        <p>The <code>middleware.ts</code> script intercepts all incoming requests to protected routes (<code>/dashboard</code>, <code>/classroom</code>, <code>/materials</code>, <code>/progress</code>, <code>/settings</code>, etc.). Unauthenticated requests are automatically redirected to <code>/login?callbackUrl=...</code>.</p>
+        <p>The <code>middleware.ts</code> script intercepts all incoming requests to protected routes (<code>/dashboard</code>, <code>/classroom</code>, <code>/materials</code>, <code>/progress</code>, <code>/settings</code>). Unauthenticated requests are redirected to <code>/login?callbackUrl=...</code>.</p>
 
-        <h3>Account Deletion & Data Wiping</h3>
-        <p>Account deletion is executed exclusively on the server via <code>POST /api/auth/delete-account</code>:</p>
+        <h3>Account Deletion &amp; Data Wiping</h3>
+        <p>Executed exclusively on the server via <code>POST /api/auth/delete-account</code>:</p>
         <ol>
-          <li>The caller's session is validated via cookies using <code>supabase.auth.getUser()</code>.</li>
-          <li>The user's private files are removed from Supabase Storage.</li>
-          <li>The user is deleted from Supabase Auth using the server-only <code>SUPABASE_SERVICE_ROLE_KEY</code> client (<code>admin.deleteUser(userId)</code>).</li>
-          <li>PostgreSQL <code>ON DELETE CASCADE</code> constraints automatically wipe all corresponding profile, course enrollment, lesson progress, assessment, and material metadata records.</li>
+          <li>Caller's session is validated via cookies using <code>supabase.auth.getUser()</code>.</li>
+          <li>User's private files are removed from Supabase Storage.</li>
+          <li>User deleted from Supabase Auth using <code>SUPABASE_SERVICE_ROLE_KEY</code> admin client (<code>admin.deleteUser(userId)</code>).</li>
+          <li>PostgreSQL <code>ON DELETE CASCADE</code> constraints automatically wipe all profile, enrollment, lesson progress, assessment, and material metadata rows.</li>
         </ol>
       </div>
     </section>
 
-    <!-- SECTION: API ROUTES -->
+
+    <!-- ========== SECTION 5: API ROUTES ========== -->
     <section>
       <h2>5. Backend API Endpoints Reference</h2>
       <div class="card">
         <table>
           <thead>
             <tr>
-              <th>HTTP Method</th>
-              <th>Endpoint Path</th>
-              <th>Authentication</th>
+              <th>Method</th>
+              <th>Endpoint</th>
+              <th>Auth</th>
               <th>Description</th>
             </tr>
           </thead>
@@ -445,45 +498,46 @@ ai-teacher-platform/
             <tr>
               <td><code>GET</code></td>
               <td><code>/api/materials</code></td>
-              <td>Required (Cookie Session)</td>
+              <td>Cookie Session</td>
               <td>Returns array of uploaded materials for the authenticated user.</td>
             </tr>
             <tr>
               <td><code>POST</code></td>
               <td><code>/api/materials</code></td>
-              <td>Required (Cookie Session)</td>
-              <td>Uploads a file to Supabase Storage and records metadata row in DB.</td>
+              <td>Cookie Session</td>
+              <td>Uploads file to Supabase Storage and records metadata row in DB.</td>
             </tr>
             <tr>
               <td><code>DELETE</code></td>
               <td><code>/api/materials</code></td>
-              <td>Required (Cookie Session)</td>
+              <td>Cookie Session</td>
               <td>Removes file from Storage and deletes DB record.</td>
             </tr>
             <tr>
               <td><code>GET</code></td>
               <td><code>/api/progress/assessment</code></td>
-              <td>Required (Cookie Session)</td>
-              <td>Retrieves the latest assessment result for a given <code>lessonId</code>.</td>
+              <td>Cookie Session</td>
+              <td>Retrieves latest assessment result for a given <code>lessonId</code>.</td>
             </tr>
             <tr>
               <td><code>POST</code></td>
               <td><code>/api/progress/assessment</code></td>
-              <td>Required (Cookie Session)</td>
-              <td>Scores checkpoint answers, generates strong/weak report, and upserts to DB.</td>
+              <td>Cookie Session</td>
+              <td>Scores checkpoint answers, generates strong/weak report, upserts to DB.</td>
             </tr>
             <tr>
               <td><code>POST</code></td>
               <td><code>/api/auth/delete-account</code></td>
-              <td>Required (Cookie Session)</td>
-              <td>Deletes all user files and purges the auth account permanently.</td>
+              <td>Cookie Session</td>
+              <td>Deletes all user files and permanently purges auth account.</td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- SECTION: OPERATIONAL COMMANDS -->
+
+    <!-- ========== SECTION 6: OPERATIONAL COMMANDS ========== -->
     <section>
       <h2>6. Operational Commands</h2>
       <div class="card">
@@ -491,18 +545,320 @@ ai-teacher-platform/
 # Start local development server
 npm run dev
 
-# Run TypeScript type check & production build
+# TypeScript type check
+npx tsc --noEmit
+
+# Run production build (also verifies compilation)
 npx next build
 
-# Start production build server
-npm run start
+# Clear Next.js build cache (safe — dev server auto-rebuilds)
+Remove-Item -Recurse -Force .next
         </pre>
       </div>
     </section>
 
+
+    <!-- ========== SECTION 7: RECENT CHANGES ========== -->
+    <section>
+      <h2>7. Recent Changes &amp; Feature Log</h2>
+      <p>All changes made during the August–September 2026 development session are listed below.</p>
+
+      <div class="card">
+        <h3>Materials Page</h3>
+        <div class="change-item">
+          <span class="change-tag tag-fix">Fix</span>
+          <div class="change-desc"><strong>Upload button binding:</strong> The primary "Upload Your First File" button was decorative. It was bound to the same <code>inputRef.current?.click()</code> handler used by the hidden <code>&lt;input type="file"&gt;</code>, so clicking it now opens the native file picker.</div>
+        </div>
+        <div class="change-item">
+          <span class="change-tag tag-fix">Fix</span>
+          <div class="change-desc"><strong>Materials API auto-bucket:</strong> <code>app/api/materials/route.ts</code> now auto-creates the <code>materials</code> Supabase Storage bucket if it does not exist, preventing 500 errors on first use.</div>
+        </div>
+        <div class="change-item">
+          <span class="change-tag tag-fix">Fix</span>
+          <div class="change-desc"><strong>FK constraint fix:</strong> <code>supabase/migrations/20260831_materials_storage.sql</code> updated to point the <code>materials.user_id</code> FK directly to <code>auth.users(id)</code> instead of <code>profiles(id)</code>, resolving insertion errors for users without a profile row.</div>
+        </div>
+
+        <h3>Settings Page</h3>
+        <div class="change-item">
+          <span class="change-tag tag-feat">Feat</span>
+          <div class="change-desc"><strong>Delete Account (Danger Zone):</strong> Added a permanent account deletion feature via a new <code>DELETE</code> API route (<code>/api/auth/delete-account</code>) and a <code>DeleteAccountButton</code> component with a confirmation modal. Server uses the Supabase Admin client with the Service Role Key — no client-side privilege escalation.</div>
+        </div>
+
+        <h3>AI Classroom — Input &amp; UX Fixes</h3>
+        <div class="change-item">
+          <span class="change-tag tag-fix">Fix</span>
+          <div class="change-desc"><strong>Feedback persistence:</strong> Removed the 1.2s <code>setTimeout</code> that was auto-dismissing the Teacher Feedback / Re-explanation UI. Feedback now stays permanently visible until the user explicitly clicks the "Next segment" or "Continue lesson" button.</div>
+        </div>
+        <div class="change-item">
+          <span class="change-tag tag-feat">Feat</span>
+          <div class="change-desc"><strong>Input validation:</strong> Submitting an empty or whitespace-only text answer no longer triggers the AI evaluation flow. The Submit button is disabled until valid text is entered or a MCQ option is selected. An error prompt is shown if the user tries to submit empty input.</div>
+        </div>
+
+        <h3>AI Classroom — Visual Blackboard (3-prompt Feature Build)</h3>
+        <div class="change-item">
+          <span class="change-tag tag-feat">Feat</span>
+          <div class="change-desc"><strong>Split layout (Prompt 1):</strong> The AI Avatar (Maya) container was converted from a full-width card into a responsive side-by-side grid. A new "Visual Blackboard" container placeholder was added to the right.</div>
+        </div>
+        <div class="change-item">
+          <span class="change-tag tag-arch">Arch</span>
+          <div class="change-desc"><strong>visualPayload data model (Prompt 2):</strong> Added optional <code>visualPayload?: string</code> field to the <code>TeacherLesson</code>, <code>question</code>, and <code>TeacherEvaluation</code> TypeScript types in <code>lib/teacher-engine.ts</code>. The "Introduction to Neural Networks" lesson now ships with a Python forward-pass snippet (teaching phase) and a linear math text diagram (question phase). The <code>MockTeacherEngine.evaluateAnswer()</code> method propagates <code>visualPayload</code> in evaluation responses. A <code>currentVisualPayload</code> React state variable and <code>useEffect</code> sync hook were added to <code>classroom/page.tsx</code>.</div>
+        </div>
+        <div class="change-item">
+          <span class="change-tag tag-ui">UI</span>
+          <div class="change-desc"><strong>Dynamic Blackboard rendering (Prompt 3):</strong> The Blackboard container is conditionally rendered only when <code>currentVisualPayload</code> has content. When empty, the layout collapses to a single full-width column (Avatar takes 100% width). When payload exists, the layout uses a 12-column CSS grid: Avatar at <code>lg:col-span-5</code>, Blackboard at <code>lg:col-span-7</code>. The Blackboard renders code inside a styled <code>&lt;pre&gt;&lt;code&gt;</code> block with markdown fence stripping, language detection badge, and a "Live Sync" indicator.</div>
+        </div>
+
+        <h3>AI Classroom — Layout Polish</h3>
+        <div class="change-item">
+          <span class="change-tag tag-ui">UI</span>
+          <div class="change-desc"><strong>Avatar card internal layout:</strong> Replaced the absolute-positioned overlay layout with a proper <code>flex flex-col justify-between</code> hierarchy. The transcript text is now contained in a <code>max-h-28 overflow-y-auto</code> scrollable box. Controls (Play/Pause, Replay, End Lesson) sit in a dedicated bottom bar separated by a border, eliminating overlap with transcript text on narrow columns.</div>
+        </div>
+        <div class="change-item">
+          <span class="change-tag tag-ui">UI</span>
+          <div class="change-desc"><strong>Blackboard code styling:</strong> Font size reduced to <code>text-xs</code>. Neon green color replaced with <code>text-gray-200</code>. Applied <code>whitespace-pre-wrap</code> and <code>break-words</code> to eliminate horizontal scrollbars on long lines.</div>
+        </div>
+
+        <h3>Build &amp; Auth Stability</h3>
+        <div class="change-item">
+          <span class="change-tag tag-fix">Fix</span>
+          <div class="change-desc"><strong>Suspense prerender fix:</strong> All components using <code>useSearchParams()</code> (in <code>/login</code>, <code>/auth/callback</code>, <code>/progress/assessment</code>) were wrapped in <code>&lt;Suspense&gt;</code> boundaries to pass Next.js static prerender checks. All 22 routes compile cleanly with <code>npx next build</code>.</div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ========== SECTION 8: AI CLASSROOM STATE MODEL ========== -->
+    <section>
+      <h2>8. AI Classroom — State &amp; Engine Architecture</h2>
+      <div class="card">
+        <h3>Lesson Phases</h3>
+        <p>The classroom component is driven by a <code>LessonPhase</code> state machine. Valid phases are:</p>
+        <pre>
+type LessonPhase =
+  | 'teaching'      // Maya delivers the teaching narrative
+  | 'question'      // MCQ or short-answer question is displayed
+  | 'answering'     // User is typing or selecting an answer
+  | 'evaluating'    // AI evaluates the submitted answer
+  | 'reexplaining'  // Maya re-explains if answer was wrong
+  | 'continuing'    // Lesson complete; prompt to start next lesson
+        </pre>
+
+        <h3>MockTeacherEngine (lib/teacher-engine.ts)</h3>
+        <p>The <code>MockTeacherEngine</code> implements the <code>TeacherEngine</code> interface with three methods:</p>
+        <table>
+          <thead>
+            <tr><th>Method</th><th>Input</th><th>Returns</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>getLessonById(lessonId)</code></td>
+              <td><code>TeacherLessonId</code></td>
+              <td><code>TeacherLesson</code> — full lesson data including <code>visualPayload</code></td>
+            </tr>
+            <tr>
+              <td><code>evaluateAnswer(lessonId, selectedIndex)</code></td>
+              <td><code>lessonId</code>, user's answer index</td>
+              <td><code>TeacherEvaluation</code> — feedback, correctAnswer, reexplanation, <code>visualPayload</code></td>
+            </tr>
+            <tr>
+              <td><code>continueLesson(lessonId)</code></td>
+              <td><code>TeacherLessonId</code></td>
+              <td><code>LessonContinuation</code> — next lesson ID or completion message</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>visualPayload Data Flow</h3>
+        <pre>
+TeacherLesson.visualPayload
+  → Phase: 'teaching'
+  → currentVisualPayload state ← useEffect sync
+
+TeacherLesson.question.visualPayload
+  → Phase: 'question' | 'answering'
+  → currentVisualPayload state ← useEffect sync
+
+TeacherEvaluation.visualPayload (from question.visualPayload)
+  → Phase: 'evaluating' | 'reexplaining'
+  → currentVisualPayload state ← useEffect sync
+
+currentVisualPayload → Visual Blackboard container (rendered conditionally)
+        </pre>
+
+        <h3>Current Lessons in Mock Data</h3>
+        <table>
+          <thead>
+            <tr><th>Lesson ID</th><th>Title</th><th>Has visualPayload?</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>ai-teacher-demo-lesson-1</code></td>
+              <td>Introduction to Neural Networks</td>
+              <td>✅ Yes — Python forward pass snippet + linear math diagram</td>
+            </tr>
+            <tr>
+              <td><code>ai-teacher-demo-lesson-2</code></td>
+              <td>How Neural Networks Learn</td>
+              <td>❌ No (no visualPayload yet)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+
+    <!-- ========== SECTION 9: AI INTEGRATION GUIDE FOR CHATGPT ========== -->
+    <section>
+      <h2 class="ai">9. AI Integration Guide — Context for ChatGPT / AI Assistants</h2>
+      <p>This section provides a ready-to-paste prompt and context block that you can hand to ChatGPT (or any AI assistant) to get help implementing real AI capabilities into this platform.</p>
+
+      <div class="ai-box">
+        <h3 class="purple">What the Platform Does (Summary for AI)</h3>
+        <p>Lumina is a Next.js 16 + Supabase AI teacher platform. A simulated AI teacher named <strong>Maya</strong> teaches students interactively. The platform has a working <strong>AI Classroom</strong> page at <code>app/(app)/classroom/page.tsx</code> with a full lesson state machine (teaching → question → evaluation → continue phases). Currently, all teacher responses (narration, questions, evaluations, re-explanations) are powered by a static <strong>MockTeacherEngine</strong> in <code>lib/teacher-engine.ts</code>.</p>
+        <p>The next goal is to replace or augment the MockTeacherEngine with <strong>real AI calls</strong> (e.g., using Google Gemini, OpenAI GPT-4, or similar) so that Maya's teaching content, questions, and evaluations are generated dynamically based on the student's chosen topic.</p>
+      </div>
+
+      <div class="ai-box">
+        <h3 class="purple">Where the AI Agent Is Supposed to Go</h3>
+        <ul>
+          <li><strong>Primary integration point:</strong> <code>lib/teacher-engine.ts</code> — Replace the <code>MockTeacherEngine</code> class methods (<code>getLessonById</code>, <code>evaluateAnswer</code>, <code>continueLesson</code>) with real API calls to an LLM.</li>
+          <li><strong>API route for AI calls:</strong> Create a new server-side API route (e.g., <code>app/api/teacher/route.ts</code>) that accepts lesson context and student input, calls the LLM, and returns structured JSON matching the <code>TeacherLesson</code> / <code>TeacherEvaluation</code> TypeScript types.</li>
+          <li><strong>Visual Blackboard payload:</strong> The LLM should also generate <code>visualPayload</code> — a markdown code block string that gets rendered in the Visual Blackboard panel next to Maya's avatar. This is already wired up in the UI and ready to receive dynamic content.</li>
+          <li><strong>Streaming support (optional):</strong> Maya's narration text (<code>teacherNarrative</code> state variable in the classroom component) can support streamed tokens from the LLM for a more live "typing" effect.</li>
+          <li><strong>Ask Teacher Panel:</strong> There is already a slide-over "Ask Teacher" panel (<code>components/app/ask-teacher-panel.tsx</code>) that is waiting to be wired up to an AI Q&amp;A endpoint.</li>
+        </ul>
+      </div>
+
+      <div class="ai-box">
+        <h3 class="purple">Ready-to-Paste ChatGPT Context Prompt</h3>
+        <p class="copy-note">↓ Copy everything inside the box below and paste it at the start of your ChatGPT conversation.</p>
+        <div class="prompt-box">
+I am building an AI teacher platform called Lumina using Next.js 16.3 (App Router), React 19, TypeScript, Tailwind CSS v4, and Supabase (PostgreSQL + Auth + Storage).
+
+The platform has an interactive AI Classroom page at `app/(app)/classroom/page.tsx`. An AI teacher named Maya teaches students through a lesson state machine with the following phases: teaching → question → answering → evaluating → reexplaining → continuing.
+
+Currently, all teacher content is served by a static MockTeacherEngine in `lib/teacher-engine.ts`. The TypeScript types that structure the data are:
+
+```typescript
+type TeacherLesson = {
+  id: TeacherLessonId
+  title: string
+  subtitle: string
+  objective: string
+  summary: string
+  keyPoints: string[]
+  teachingPrompt: string
+  visualPayload?: string        // Optional markdown/code block for Visual Blackboard panel
+  question: {
+    prompt: string
+    options: string[]
+    correctIndex: number
+    explanation: string
+    teacherPrompt: string
+    visualPayload?: string      // Optional code/diagram for the question phase
+  }
+  reexplanation: string
+  completionMessage: string
+}
+
+type TeacherEvaluation = {
+  isCorrect: boolean
+  feedback: string
+  correctAnswer: string
+  reexplanation: string
+  nextCta: string
+  visualPayload?: string        // Optional code/diagram shown during evaluation
+}
+```
+
+The classroom component has this state:
+- `phase` — current lesson phase (teaching / question / answering / evaluating / reexplaining / continuing)
+- `teacherNarrative` — the text Maya is currently speaking
+- `currentVisualPayload` — a string (markdown code block) rendered in a Visual Blackboard panel next to Maya's avatar
+- `evaluation` — a TeacherEvaluation object set after the student answers
+- `lesson` — the current TeacherLesson object
+
+The Visual Blackboard panel is already built and wired. It renders `currentVisualPayload` using `<pre><code>` blocks with whitespace-pre-wrap. It dynamically shows/hides based on whether `currentVisualPayload` is non-empty (using a 12-column CSS grid: Avatar col-span-5, Blackboard col-span-7).
+
+MY GOAL: I want to replace the MockTeacherEngine with a real AI (e.g., Google Gemini or OpenAI GPT-4o). Please help me:
+
+1. Design a server-side Next.js API route (`app/api/teacher/route.ts`) that accepts a topic/lesson request and returns a structured JSON matching the TeacherLesson type above.
+2. Design another API endpoint that accepts (lessonContext, studentAnswer) and returns a TeacherEvaluation JSON.
+3. Both endpoints must generate a `visualPayload` — a relevant markdown code block or text diagram that complements what Maya is teaching.
+4. Suggest how to wire these new API routes into the existing `TeacherEngine` interface in `lib/teacher-engine.ts` by creating a `RealTeacherEngine` class that implements the same interface methods but calls the API routes asynchronously.
+5. Optionally, suggest how to stream Maya's narration text to the `teacherNarrative` state for a live typing effect using Next.js streaming responses.
+
+The project uses `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` as environment variables. I can also add `OPENAI_API_KEY` or `GOOGLE_AI_API_KEY` to `.env.local`.
+        </div>
+      </div>
+
+      <div class="card highlight-card">
+        <h3>Key Files to Share with ChatGPT</h3>
+        <p>If ChatGPT asks for code context, share the contents of these files:</p>
+        <ul>
+          <li><code>lib/teacher-engine.ts</code> — full type definitions and MockTeacherEngine class</li>
+          <li><code>app/(app)/classroom/page.tsx</code> — lines 80–240 (state declarations + phase transition functions)</li>
+          <li><code>.env.local</code> — only the variable names (not the values!) so ChatGPT knows what secrets are available</li>
+        </ul>
+      </div>
+    </section>
+
+
+    <!-- ========== SECTION 10: ENV VARIABLES ========== -->
+    <section>
+      <h2>10. Environment Variables (.env.local)</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th>Variable</th><th>Used By</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>NEXT_PUBLIC_SUPABASE_URL</code></td>
+              <td>Browser &amp; Server</td>
+              <td>Supabase project URL (public)</td>
+            </tr>
+            <tr>
+              <td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td>
+              <td>Browser &amp; Server</td>
+              <td>Supabase anonymous key (public, RLS enforced)</td>
+            </tr>
+            <tr>
+              <td><code>SUPABASE_SERVICE_ROLE_KEY</code></td>
+              <td>Server only</td>
+              <td>Admin key used only in <code>/api/auth/delete-account</code> — bypasses RLS</td>
+            </tr>
+            <tr>
+              <td><code>NEXTAUTH_SECRET</code></td>
+              <td>Server only</td>
+              <td>JWT signing secret for NextAuth sessions</td>
+            </tr>
+            <tr>
+              <td><code>NEXTAUTH_URL</code></td>
+              <td>Server only</td>
+              <td>Canonical URL for OAuth redirects (e.g., <code>http://localhost:3000</code>)</td>
+            </tr>
+            <tr>
+              <td><code>GOOGLE_CLIENT_ID / SECRET</code></td>
+              <td>Server only</td>
+              <td>Google OAuth 2.0 credentials</td>
+            </tr>
+            <tr>
+              <td><code>GITHUB_CLIENT_ID / SECRET</code></td>
+              <td>Server only</td>
+              <td>GitHub OAuth credentials</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="color: var(--warning); font-size: 0.85rem;">⚠ To add AI capabilities, you will also need to add <code>OPENAI_API_KEY</code> or <code>GOOGLE_AI_API_KEY</code> here.</p>
+      </div>
+    </section>
+
+
     <footer>
-      <p>Lumina AI Teacher Platform — Technical Architecture Documentation</p>
+      <p>Lumina AI Teacher Platform — Technical Architecture Documentation — Updated September 2026</p>
     </footer>
+
   </div>
 </body>
 </html>
