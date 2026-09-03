@@ -172,11 +172,20 @@ export async function POST(req: NextRequest) {
     console.error(`[assessment/POST] No default lesson found for engine lesson: ${lessonId}`)
   }
 
+  const activityDate = new Date().toISOString().slice(0, 10)
+  const { data: existingActivity } = await supabase
+    .from('learning_activity')
+    .select('study_minutes')
+    .eq('user_id', user.id)
+    .eq('activity_date', activityDate)
+    .maybeSingle()
+
+  const studyMinutes = (existingActivity?.study_minutes ?? 0) + Math.max(1, Math.ceil(timeSpentSeconds / 60))
   const { error: activityError } = await supabase
     .from('learning_activity')
     .upsert(
-      { user_id: user.id, activity_date: new Date().toISOString().slice(0, 10) },
-      { onConflict: 'user_id,activity_date', ignoreDuplicates: true },
+      { user_id: user.id, activity_date: activityDate, study_minutes: studyMinutes },
+      { onConflict: 'user_id,activity_date' },
     )
 
   if (activityError) {

@@ -70,9 +70,13 @@ END $$;
 CREATE TABLE IF NOT EXISTS public.learning_activity (
   user_id       uuid not null references auth.users(id) on delete cascade,
   activity_date date not null default current_date,
+  study_minutes integer not null default 0 check (study_minutes >= 0),
   created_at    timestamptz not null default now(),
   primary key (user_id, activity_date)
 );
+
+ALTER TABLE public.learning_activity
+  ADD COLUMN IF NOT EXISTS study_minutes integer not null default 0;
 
 ALTER TABLE public.learning_activity ENABLE ROW LEVEL SECURITY;
 

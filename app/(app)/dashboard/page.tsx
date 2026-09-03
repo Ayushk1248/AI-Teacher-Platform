@@ -13,12 +13,13 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 export default async function DashboardPage() {
   const session = await auth()
   const firstName = session?.user?.name?.split(' ')[0] ?? 'there'
-  const [demoCourse, completedLessons, averageAssessment, studyStreak, conceptsMastered] = await Promise.all([
+  const [demoCourse, completedLessons, averageAssessment, studyStreak, conceptsMastered, weeklyGoal] = await Promise.all([
     getDemoCourse(),
     getCompletedLessonCount(),
     getAverageAssessment(),
     getStudyStreak(),
     getConceptsMastered(),
+    getWeeklyGoal(),
   ])
   const dashboardStats = stats.map((stat) =>
     stat.label === 'Lessons completed'
@@ -167,11 +168,11 @@ export default async function DashboardPage() {
             <CardContent className="flex flex-col gap-3 p-5">
               <h3 className="font-medium">Weekly goal</h3>
               <div className="flex items-center gap-3">
-                <Progress value={72} className="h-2" />
-                <span className="text-sm font-medium text-muted-foreground">72%</span>
+                <Progress value={weeklyGoal.progress} className="h-2" />
+                <span className="text-sm font-medium text-muted-foreground">{weeklyGoal.progress}%</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                3.6 of 5 hours completed this week. Keep it up!
+                {formatStudyTime(weeklyGoal.completedMinutes)} of 5 hours completed this week.
               </p>
               <Button variant="outline" className="mt-1 w-full justify-center">
                 Adjust goal
@@ -331,4 +332,42 @@ async function getConceptsMastered() {
   }
 
   return masteredAreas.size
+}
+
+async function getWeeklyGoal() {
+  const supabase = await createSupabaseServerClient()
+  if (!supabase) return { completedMinutes: 0, progress: 0 }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { completedMinutes: 0, progress: 0 }
+
+  const today = new Date()
+  const daysSinceMonday = (today.getUTCDay() + 6) % 7
+  const weekStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - daysSinceMonday))
+    .toISOString()
+    .slice(0, 10)
+
+  const { data } = await supabase
+    .from('learning_activity')
+    .select('study_minutes')
+    .eq('user_id', user.id)
+    .gte('activity_date', weekStart)
+
+  const completedMinutes = (data ?? []).reduce(
+    (sum, activity) => sum + Number(activity.study_minutes ?? 0),
+    0,
+  )
+
+  return {
+    completedMinutes,
+    progress: Math.min(100, Math.round((completedMinutes / 300) * 100)),
+  }
+}
+
+function formatStudyTime(minutes: number) {
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  if (hours === 0) return `${remainingMinutes} min`
+  if (remainingMinutes === 0) return `${hours}h`
+  return `${hours}h ${remainingMinutes}m`
 }
