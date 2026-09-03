@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Bot,
   Captions,
@@ -31,6 +31,9 @@ type LessonPhase =
 type ResponseMode = 'mcq' | 'freeform'
 
 export default function ClassroomPage() {
+  const lessonKey = 'ai-teacher-demo-lesson-1'
+  const startedAtRef = useRef(Date.now())
+  const completionRecordedRef = useRef(false)
   const [playing, setPlaying] = useState(true)
   const [paused, setPaused] = useState(false)
   const [phase, setPhase] = useState<LessonPhase>('teaching')
@@ -44,6 +47,14 @@ export default function ClassroomPage() {
 
   const progressPct = Math.round((currentConcept.step / currentConcept.totalSteps) * 100)
   const isCorrect = selected === classroomMcq.correctIndex
+
+  useEffect(() => {
+    void fetch('/api/progress/lesson', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lessonKey, status: 'in_progress', progressPercentage: progressPct }),
+    })
+  }, [])
 
   function openAskTeacher() {
     setResumePhase(phase)
@@ -64,6 +75,9 @@ export default function ClassroomPage() {
   }
 
   function beginEvaluating() {
+    if (responseMode === 'mcq' && selected === null) return
+    if (responseMode === 'freeform' && shortAnswer.trim().length === 0) return
+
     setPhase('evaluating')
     setTimeout(() => {
       if (selected === classroomMcq.correctIndex || shortAnswer.trim().length >= 18) {
@@ -84,6 +98,18 @@ export default function ClassroomPage() {
     setPlaying(false)
     setPaused(true)
     setPhase('continuing')
+
+    if (completionRecordedRef.current) return
+    completionRecordedRef.current = true
+    void fetch('/api/progress/lesson', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lessonKey,
+        status: 'completed',
+        timeSpentSeconds: Math.floor((Date.now() - startedAtRef.current) / 1000),
+      }),
+    })
   }
 
   const statusLabel: Record<LessonPhase, string> = {
@@ -148,8 +174,9 @@ export default function ClassroomPage() {
                     Back to lesson
                   </Button>
                   <Button
-                    className="h-9 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white"
+                    className="h-9 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={beginEvaluating}
+                    disabled={responseMode === 'mcq' ? selected === null : shortAnswer.trim().length === 0}
                   >
                     Submit answer
                   </Button>
@@ -341,7 +368,7 @@ export default function ClassroomPage() {
                           <button
                             key={option}
                             type="button"
-                            onClick={() => { setSelected(index); setPhase('answering') }}
+                            onClick={() => setSelected(index)}
                             className={cn(
                               'flex items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm transition-colors',
                               selected === index
@@ -369,7 +396,11 @@ export default function ClassroomPage() {
                       <Button variant="secondary" className="border border-white/10 bg-white/5 text-slate-200" onClick={() => setPhase('teaching')}>
                         Back to teaching
                       </Button>
-                      <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white" onClick={beginEvaluating}>
+                      <Button
+                        className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={beginEvaluating}
+                        disabled={responseMode === 'mcq' ? selected === null : shortAnswer.trim().length === 0}
+                      >
                         Submit answer
                       </Button>
                     </div>
@@ -383,9 +414,6 @@ export default function ClassroomPage() {
                     <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/5 p-4 text-sm text-slate-200">
                       {selected !== null ? classroomMcq.options[selected] : shortAnswer || 'Your response is being evaluated.'}
                     </div>
-                    <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white" onClick={beginEvaluating}>
-                      Evaluate response
-                    </Button>
                   </div>
                 )}
 
