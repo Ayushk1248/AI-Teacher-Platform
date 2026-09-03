@@ -80,3 +80,34 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true })
 }
+
+export async function GET(req: NextRequest) {
+  const supabase = await createSupabaseServerClient()
+  if (!supabase) return NextResponse.json({ error: 'DB unavailable' }, { status: 503 })
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const lessonKey = new URL(req.url).searchParams.get('lessonKey') ?? ''
+  const lessonTitle = LESSON_KEYS[lessonKey]
+  if (!lessonTitle) return NextResponse.json({ error: 'Unknown lesson' }, { status: 400 })
+
+  const { data: lesson } = await supabase
+    .from('lessons')
+    .select('id')
+    .eq('title', lessonTitle)
+    .eq('is_default', true)
+    .limit(1)
+    .maybeSingle()
+
+  if (!lesson) return NextResponse.json({ progress: null })
+
+  const { data: progress } = await supabase
+    .from('lesson_progress')
+    .select('status, progress_percentage, current_section')
+    .eq('user_id', user.id)
+    .eq('lesson_id', lesson.id)
+    .maybeSingle()
+
+  return NextResponse.json({ progress })
+}

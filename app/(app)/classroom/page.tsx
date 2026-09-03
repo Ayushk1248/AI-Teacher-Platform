@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Bot,
   Captions,
@@ -35,6 +35,11 @@ const lessonVariants = {
   'ai-teacher-demo-lesson-1': {
     concept: defaultCurrentConcept,
     question: defaultClassroomMcq,
+    teachingTitle: 'Why does the network use a bias term?',
+    teachingText: 'A bias lets every neuron shift its output independently of the incoming inputs. That means the model can move its decision boundary around the page, not just along whatever the input features dictate.',
+    tutorPrompt: 'Today we are tracing how a tiny neural network turns inputs into predictions.',
+    reexplanation: 'Think of the bias as a starting offset. Even when all the inputs are zero, the neuron still has a baseline value, which helps the model shift its decision boundary.',
+    continuation: 'Nice work. The next concept builds on how individual neurons combine signals into a useful prediction.',
   },
   'ai-teacher-demo-lesson-2': {
     concept: {
@@ -58,10 +63,16 @@ const lessonVariants = {
       correctIndex: 1,
       explanation: 'Gradient descent updates the weights in the direction that reduces the model\'s loss, gradually improving its predictions.',
     },
+      teachingTitle: 'How does a network learn from its mistakes?',
+      teachingText: 'A network compares its prediction with the target, measures the error as loss, and uses gradients to adjust its weights. Repeating those updates gradually improves the model.',
+      tutorPrompt: 'Today we are following how a neural network learns by reducing its prediction error.',
+      reexplanation: 'The loss tells us how wrong the model is. Gradient descent follows the direction that reduces that error, updating the weights step by step.',
+      continuation: 'Nice work. The next concept builds on how repeated weight updates improve a model over time.',
   },
 } as const
 
 export default function ClassroomPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const lessonKey = searchParams.get('lessonId') === 'ai-teacher-demo-lesson-2'
     ? 'ai-teacher-demo-lesson-2'
@@ -73,6 +84,7 @@ export default function ClassroomPage() {
   const [paused, setPaused] = useState(false)
   const [phase, setPhase] = useState<LessonPhase>('teaching')
   const [responseMode, setResponseMode] = useState<ResponseMode>('mcq')
+  const [lessonProgress, setLessonProgress] = useState(Math.round((currentConcept.step / currentConcept.totalSteps) * 100))
   const [selected, setSelected] = useState<number | null>(null)
   const [shortAnswer, setShortAnswer] = useState('')
   const [showTranscript, setShowTranscript] = useState(false)
@@ -80,15 +92,30 @@ export default function ClassroomPage() {
   const [resumePhase, setResumePhase] = useState<LessonPhase>('teaching')
   const [askDraft, setAskDraft] = useState('')
 
-  const progressPct = Math.round((currentConcept.step / currentConcept.totalSteps) * 100)
+  const progressPct = lessonProgress
   const isCorrect = selected === classroomMcq.correctIndex
 
   useEffect(() => {
-    void fetch('/api/progress/lesson', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lessonKey, status: 'in_progress', progressPercentage: progressPct }),
-    })
+    async function restoreProgress() {
+      const response = await fetch(`/api/progress/lesson?lessonKey=${lessonKey}`)
+      if (!response.ok) return
+
+      const data = await response.json() as {
+        progress: { status: string; progress_percentage: number } | null
+      }
+      const savedProgress = data.progress?.progress_percentage
+      if (typeof savedProgress === 'number') setLessonProgress(savedProgress)
+
+      if (data.progress?.status !== 'completed') {
+        void fetch('/api/progress/lesson', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lessonKey, status: 'in_progress', progressPercentage: savedProgress ?? progressPct }),
+        })
+      }
+    }
+
+    void restoreProgress()
   }, [])
 
   function openAskTeacher() {
@@ -107,6 +134,12 @@ export default function ClassroomPage() {
     setPhase('question')
     setSelected(null)
     setShortAnswer('')
+    setLessonProgress(67)
+    void fetch('/api/progress/lesson', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lessonKey, status: 'in_progress', progressPercentage: 67 }),
+    })
   }
 
   function beginEvaluating() {
@@ -129,14 +162,14 @@ export default function ClassroomPage() {
     setPhase('teaching')
   }
 
-  function endLesson() {
+  async function endLesson() {
     setPlaying(false)
     setPaused(true)
     setPhase('continuing')
 
     if (completionRecordedRef.current) return
     completionRecordedRef.current = true
-    void fetch('/api/progress/lesson', {
+    await fetch('/api/progress/lesson', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -145,6 +178,7 @@ export default function ClassroomPage() {
         timeSpentSeconds: Math.floor((Date.now() - startedAtRef.current) / 1000),
       }),
     })
+    router.replace('/progress/path')
   }
 
   const statusLabel: Record<LessonPhase, string> = {
@@ -296,12 +330,12 @@ export default function ClassroomPage() {
                   <p className="text-xs uppercase tracking-[0.26em] text-cyan-300/80">AI tutor</p>
                   <h2 className="mt-2 text-3xl font-semibold text-white">Maya</h2>
                   <p className="mt-2 text-sm text-slate-300">
-                    {phase === 'teaching' && 'Today we are tracing how a tiny neural network turns inputs into predictions.'}
+                    {phase === 'teaching' && lessonVariants[lessonKey].tutorPrompt}
                     {phase === 'question' && 'I want to check your understanding before we move on.'}
                     {phase === 'answering' && 'Take a moment to answer. There are several ways to respond.'}
                     {phase === 'evaluating' && 'Let me assess your answer and decide what to revisit.'}
-                    {phase === 'reexplaining' && 'I’ll simplify the idea and connect it back to the worked example.'}
-                    {phase === 'continuing' && 'Nice work. The next concept builds directly on this one.'}
+                    {phase === 'reexplaining' && lessonVariants[lessonKey].reexplanation}
+                    {phase === 'continuing' && lessonVariants[lessonKey].continuation}
                   </p>
                 </div>
               </div>
@@ -350,9 +384,9 @@ export default function ClassroomPage() {
                       <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">Teaching</p>
                       <Badge className="bg-cyan-500/15 text-cyan-200">Concept explanation</Badge>
                     </div>
-                    <p className="text-lg font-medium text-white">Why does the network use a bias term?</p>
+                    <p className="text-lg font-medium text-white">{lessonVariants[lessonKey].teachingTitle}</p>
                     <p className="leading-relaxed text-slate-300">
-                      A bias lets every neuron shift its output independently of the incoming inputs. That means the model can move its decision boundary around the page, not just along whatever the input features dictate.
+                      {lessonVariants[lessonKey].teachingText}
                     </p>
                     <div className="grid gap-3 sm:grid-cols-3">
                       {currentConcept.keyPoints.map((point) => (
@@ -472,7 +506,7 @@ export default function ClassroomPage() {
                     </div>
                     <p className="text-lg font-medium text-white">Let’s slow this down.</p>
                     <p className="leading-relaxed text-slate-300">
-                      Think of the bias as a starting offset. Even when all the inputs are zero, the neuron still has a baseline value. That is why the model can shift its decision boundary and learn patterns that aren’t locked to the origin.
+                      {lessonVariants[lessonKey].reexplanation}
                     </p>
                     <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white" onClick={() => setPhase('continuing')}>
                       Continue lesson
