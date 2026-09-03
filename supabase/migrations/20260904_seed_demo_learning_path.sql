@@ -67,6 +67,30 @@ BEGIN
   ON CONFLICT DO NOTHING;
 END $$;
 
+CREATE TABLE IF NOT EXISTS public.learning_activity (
+  user_id       uuid not null references auth.users(id) on delete cascade,
+  activity_date date not null default current_date,
+  created_at    timestamptz not null default now(),
+  primary key (user_id, activity_date)
+);
+
+ALTER TABLE public.learning_activity ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'learning_activity' AND policyname = 'Users can read own learning activity') THEN
+    CREATE POLICY "Users can read own learning activity"
+      ON public.learning_activity FOR SELECT
+      USING (user_id = auth.uid());
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'learning_activity' AND policyname = 'Users can insert own learning activity') THEN
+    CREATE POLICY "Users can insert own learning activity"
+      ON public.learning_activity FOR INSERT
+      WITH CHECK (user_id = auth.uid());
+  END IF;
+END $$;
+
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'courses' AND policyname = 'Anyone can read default courses') THEN

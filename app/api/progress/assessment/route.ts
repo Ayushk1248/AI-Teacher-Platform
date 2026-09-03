@@ -172,6 +172,17 @@ export async function POST(req: NextRequest) {
     console.error(`[assessment/POST] No default lesson found for engine lesson: ${lessonId}`)
   }
 
+  const { error: activityError } = await supabase
+    .from('learning_activity')
+    .upsert(
+      { user_id: user.id, activity_date: new Date().toISOString().slice(0, 10) },
+      { onConflict: 'user_id,activity_date', ignoreDuplicates: true },
+    )
+
+  if (activityError) {
+    console.error('[assessment/POST] Activity update failed:', activityError.message)
+  }
+
   // Upsert assessment result (one record per user+lesson; latest wins)
   const { data: result, error } = await supabase
     .from('assessment_results')

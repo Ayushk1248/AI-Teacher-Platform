@@ -13,21 +13,35 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 export default async function DashboardPage() {
   const session = await auth()
   const firstName = session?.user?.name?.split(' ')[0] ?? 'there'
-  const [demoCourse, completedLessons] = await Promise.all([
+  const [demoCourse, completedLessons, averageAssessment, studyStreak] = await Promise.all([
     getDemoCourse(),
     getCompletedLessonCount(),
+    getAverageAssessment(),
+    getStudyStreak(),
   ])
   const dashboardStats = stats.map((stat) =>
     stat.label === 'Lessons completed'
       ? { ...stat, value: String(completedLessons), delta: 'From your learning path' }
-      : stat,
+      : stat.label === 'Avg. assessment'
+        ? {
+            ...stat,
+            value: averageAssessment === null ? '—' : `${averageAssessment}%`,
+            delta: averageAssessment === null ? 'No assessments yet' : 'From your assessments',
+          }
+        : stat.label === 'Study streak'
+          ? { ...stat, value: `${studyStreak} days`, delta: 'Assessment activity' }
+        : stat,
   )
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
         eyebrow={`Welcome back, ${firstName}`}
         title="Ready to learn something new?"
-        description="You're on a 12-day streak. Pick up where you left off or start a fresh lesson."
+        description={
+          studyStreak > 0
+            ? `You're on a ${studyStreak}-day streak. Pick up where you left off or start a fresh lesson.`
+            : 'Complete an assessment to start your learning streak.'
+        }
         actions={
           <LinkButton
             href="/start"
@@ -238,4 +252,51 @@ async function getCompletedLessonCount() {
     .eq('status', 'completed')
 
   return count ?? 0
+}
+
+async function getAverageAssessment() {
+  const supabase = await createSupabaseServerClient()
+  if (!supabase) return null
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data } = await supabase
+    .from('assessment_results')
+    .select('score')
+    .eq('user_id', user.id)
+
+  if (!data?.length) return null
+
+  const average = data.reduce((sum, result) => sum + Number(result.score), 0) / data.length
+  return Math.round(average)
+}
+
+async function getStudyStreak() {
+  const supabase = await createSupabaseServerClient()
+  if (!supabase) return 0
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 0
+
+  const { data } = await supabase
+    .from('learning_activity')
+    .select('activity_date')
+    .eq('user_id', user.id)
+    .order('activity_date', { ascending: false })
+
+  if (!data?.length) return 0
+
+  const activeDates = new Set(data.map((activity) => String(activity.activity_date)))
+  const today = new Date()
+  let streak = 0
+
+  for (let dayOffset = 0; ; dayOffset += 1) {
+    const date = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - dayOffset))
+    const dateKey = date.toISOString().slice(0, 10)
+    if (!activeDates.has(dateKey)) break
+    streak += 1
+  }
+
+  return streak
 }
