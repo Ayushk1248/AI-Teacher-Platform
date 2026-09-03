@@ -10,6 +10,8 @@ import { stats, recommendedTopic } from '@/lib/mock-data'
 import { auth } from '@/auth'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
   const session = await auth()
   const firstName = session?.user?.name?.split(' ')[0] ?? 'there'
@@ -287,22 +289,31 @@ async function getStudyStreak() {
     .from('learning_activity')
     .select('activity_date')
     .eq('user_id', user.id)
-    .order('activity_date', { ascending: false })
 
   if (!data?.length) return 0
 
   const activeDates = new Set(data.map((activity) => String(activity.activity_date)))
   const today = new Date()
+  const todayKey = getLocalDateKey(today.toISOString())
   let streak = 0
 
   for (let dayOffset = 0; ; dayOffset += 1) {
-    const date = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - dayOffset))
-    const dateKey = date.toISOString().slice(0, 10)
+    const date = new Date(today)
+    date.setDate(today.getDate() - dayOffset)
+    const dateKey = dayOffset === 0 ? todayKey : getLocalDateKey(date.toISOString())
     if (!activeDates.has(dateKey)) break
     streak += 1
   }
 
   return streak
+}
+
+function getLocalDateKey(isoDate: string) {
+  return new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(isoDate))
 }
 
 async function getConceptsMastered() {

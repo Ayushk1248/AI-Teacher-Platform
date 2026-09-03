@@ -56,6 +56,7 @@ export default function AssessmentPage() {
 function AssessmentContent() {
   const searchParams = useSearchParams()
   const lessonIdParam = (searchParams.get('lessonId') ?? 'ai-teacher-demo-lesson-1') as TeacherLessonId
+  const isRetake = searchParams.get('retake') === '1'
 
   const engine = useMemo(() => new MockTeacherEngine(), [])
   const [lesson, setLesson] = useState<TeacherLesson | null>(null)
@@ -105,6 +106,8 @@ function AssessmentContent() {
   // ── Load previous result on mount ──
   useEffect(() => {
     async function loadPrevious() {
+      if (isRetake) return
+
       try {
         const res = await fetch(`/api/progress/assessment?lessonId=${lessonIdParam}`)
         if (!res.ok) return
@@ -118,7 +121,7 @@ function AssessmentContent() {
       }
     }
     void loadPrevious()
-  }, [lessonIdParam])
+  }, [isRetake, lessonIdParam])
 
   // ── Submit and save ──
   const handleFinish = useCallback(async () => {
@@ -136,6 +139,7 @@ function AssessmentContent() {
           lessonId:           lessonIdParam,
           answers:            [{ questionId, selectedIndex: picked }],
           timeSpentSeconds:   elapsed,
+          activityDate:       new Intl.DateTimeFormat('en-CA').format(new Date()),
         }),
       })
       const data = await res.json() as ReportData & { error?: string }
@@ -369,6 +373,10 @@ function ReportView({
 
   const hasWeak = report.weak.length > 0
 
+  function retakeAssessment() {
+    window.location.href = `/progress/assessment?lessonId=${encodeURIComponent(lessonId)}&retake=1`
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Score hero */}
@@ -505,6 +513,14 @@ function ReportView({
       <div className="rounded-2xl border border-border bg-card/40 p-5">
         <p className="mb-4 text-sm font-medium text-foreground">What would you like to do next?</p>
         <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={retakeAssessment}
+            className="inline-flex h-11 items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+          >
+            <RefreshCw className="size-4" />
+            Retake Assessment
+          </button>
           {hasWeak && (
             <LinkButton
               href="/classroom"

@@ -19,6 +19,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { MockTeacherEngine } from '@/lib/teacher-engine'
 import type { TeacherLessonId } from '@/lib/teacher-engine'
 
+export const dynamic = 'force-dynamic'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type AreaStat = { area: string; mastery: number }
@@ -116,6 +118,10 @@ export default async function LearningReportPage() {
   }
 
   const scorePct = report.score
+  const masteryValues = report.strong.map((area) => Number(area.mastery)).filter(Number.isFinite)
+  const averageMastery = masteryValues.length > 0
+    ? Math.round(masteryValues.reduce((sum, value) => sum + value, 0) / masteryValues.length)
+    : scorePct
   const lessonTitle = await (async () => {
     try { return (await engine.getLessonById(report.lesson_key)).title }
     catch { return 'Your lesson' }
@@ -168,7 +174,7 @@ export default async function LearningReportPage() {
           { icon: Target,       label: 'Score',       value: `${scorePct}%`                  },
           { icon: CheckCircle2, label: 'Correct',      value: `${report.correct}/${report.total}` },
           { icon: Clock,        label: 'Time spent',   value: report.time_spent               },
-          { icon: TrendingUp,   label: 'Avg. mastery', value: `${scorePct}%`                  },
+          { icon: TrendingUp,   label: 'Avg. mastery', value: `${averageMastery}%`             },
         ].map(({ icon: Icon, label, value }) => (
           <Card key={label} className="border-primary/20 bg-gradient-to-br from-primary/5 to-background">
             <CardContent className="flex items-center gap-3 p-5">
@@ -275,7 +281,7 @@ export default async function LearningReportPage() {
         <div className="flex flex-wrap gap-3">
           {hasWeak && (
             <LinkButton
-              href="/classroom"
+              href={`/classroom?lessonId=${encodeURIComponent(report.lesson_key)}`}
               size="lg"
               className="h-11 gap-2 bg-gradient-to-r from-primary to-accent px-5 text-primary-foreground"
             >
@@ -284,7 +290,9 @@ export default async function LearningReportPage() {
             </LinkButton>
           )}
           <LinkButton
-            href="/classroom"
+            href={nextLesson
+              ? `/classroom?lessonId=ai-teacher-demo-lesson-2`
+              : `/classroom?lessonId=${encodeURIComponent(report.lesson_key)}`}
             size="lg"
             variant={hasWeak ? 'outline' : undefined}
             className={!hasWeak ? 'h-11 gap-2 bg-gradient-to-r from-primary to-accent px-5 text-primary-foreground' : 'h-11 gap-2 px-5'}

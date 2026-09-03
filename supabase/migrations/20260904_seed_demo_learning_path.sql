@@ -93,6 +93,13 @@ BEGIN
       ON public.learning_activity FOR INSERT
       WITH CHECK (user_id = auth.uid());
   END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'learning_activity' AND policyname = 'Users can update own learning activity') THEN
+    CREATE POLICY "Users can update own learning activity"
+      ON public.learning_activity FOR UPDATE
+      USING (user_id = auth.uid())
+      WITH CHECK (user_id = auth.uid());
+  END IF;
 END $$;
 
 DO $$
@@ -134,6 +141,9 @@ BEGIN
       WITH CHECK (user_id = auth.uid());
   END IF;
 END $$;
+
+-- Allow multiple attempts for the same lesson. The application displays the latest attempt.
+DROP INDEX IF EXISTS public.assessment_results_user_lesson_key;
 
 CREATE OR REPLACE FUNCTION public.handle_new_user_demo_path()
 RETURNS trigger

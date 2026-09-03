@@ -11,6 +11,9 @@ type LessonProgressRequest = {
   status: 'in_progress' | 'completed'
   progressPercentage?: number
   timeSpentSeconds?: number
+  currentSection?: 'teaching' | 'question' | 'answering' | 'evaluating' | 'reexplaining' | 'continuing'
+  paused?: boolean
+  progressState?: Record<string, unknown>
 }
 
 export async function POST(req: NextRequest) {
@@ -46,6 +49,9 @@ export async function POST(req: NextRequest) {
     progress_percentage: body.status === 'completed' ? 100 : Math.min(99, Math.max(0, body.progressPercentage ?? 1)),
     completed_at: body.status === 'completed' ? now : null,
     updated_at: now,
+    current_section: body.currentSection ?? 'teaching',
+    paused: body.paused ?? false,
+    progress_state: body.progressState ?? {},
   }
 
   const { error: progressError } = await supabase
@@ -104,7 +110,7 @@ export async function GET(req: NextRequest) {
 
   const { data: progress } = await supabase
     .from('lesson_progress')
-    .select('status, progress_percentage, current_section')
+    .select('status, progress_percentage, current_section, paused, progress_state')
     .eq('user_id', user.id)
     .eq('lesson_id', lesson.id)
     .maybeSingle()

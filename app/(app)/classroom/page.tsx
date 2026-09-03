@@ -85,6 +85,7 @@ export default function ClassroomPage() {
   const [phase, setPhase] = useState<LessonPhase>('teaching')
   const [responseMode, setResponseMode] = useState<ResponseMode>('mcq')
   const [lessonProgress, setLessonProgress] = useState(Math.round((currentConcept.step / currentConcept.totalSteps) * 100))
+  const [progressRestored, setProgressRestored] = useState(false)
   const [selected, setSelected] = useState<number | null>(null)
   const [shortAnswer, setShortAnswer] = useState('')
   const [showTranscript, setShowTranscript] = useState(false)
@@ -101,22 +102,64 @@ export default function ClassroomPage() {
       if (!response.ok) return
 
       const data = await response.json() as {
-        progress: { status: string; progress_percentage: number } | null
+        progress: {
+          status: string
+          progress_percentage: number
+          current_section: LessonPhase
+          paused: boolean
+          progress_state: { responseMode?: ResponseMode; selected?: number | null; shortAnswer?: string }
+        } | null
       }
       const savedProgress = data.progress?.progress_percentage
       if (typeof savedProgress === 'number') setLessonProgress(savedProgress)
+      if (data.progress?.current_section) setPhase(data.progress.current_section)
+      if (typeof data.progress?.paused === 'boolean') {
+        setPaused(data.progress.paused)
+        setPlaying(!data.progress.paused)
+      }
+      if (data.progress?.progress_state) {
+        const state = data.progress.progress_state
+        if (state.responseMode) setResponseMode(state.responseMode)
+        if (state.selected !== undefined) setSelected(state.selected ?? null)
+        if (state.shortAnswer !== undefined) setShortAnswer(state.shortAnswer)
+      }
+      if (data.progress?.status === 'completed') completionRecordedRef.current = true
+      setProgressRestored(true)
 
       if (data.progress?.status !== 'completed') {
         void fetch('/api/progress/lesson', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lessonKey, status: 'in_progress', progressPercentage: savedProgress ?? progressPct }),
+          body: JSON.stringify({
+            lessonKey,
+            status: 'in_progress',
+            progressPercentage: savedProgress ?? progressPct,
+            currentSection: data.progress?.current_section ?? 'teaching',
+            paused: data.progress?.paused ?? false,
+          }),
         })
       }
     }
 
     void restoreProgress()
   }, [])
+
+  useEffect(() => {
+    if (!progressRestored || completionRecordedRef.current) return
+
+    void fetch('/api/progress/lesson', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lessonKey,
+        status: 'in_progress',
+        progressPercentage: progressPct,
+        currentSection: phase,
+        paused,
+        progressState: { responseMode, selected, shortAnswer },
+      }),
+    })
+  }, [lessonKey, phase, paused, progressPct, progressRestored, responseMode, selected, shortAnswer])
 
   function openAskTeacher() {
     setResumePhase(phase)
@@ -135,11 +178,6 @@ export default function ClassroomPage() {
     setSelected(null)
     setShortAnswer('')
     setLessonProgress(67)
-    void fetch('/api/progress/lesson', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lessonKey, status: 'in_progress', progressPercentage: 67 }),
-    })
   }
 
   function beginEvaluating() {
@@ -175,6 +213,10 @@ export default function ClassroomPage() {
       body: JSON.stringify({
         lessonKey,
         status: 'completed',
+        currentSection: 'continuing',
+        paused: true,
+        progressPercentage: 100,
+        progressState: { responseMode, selected, shortAnswer },
         timeSpentSeconds: Math.floor((Date.now() - startedAtRef.current) / 1000),
       }),
     })

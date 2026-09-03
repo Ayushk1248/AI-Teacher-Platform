@@ -104,6 +104,7 @@ export async function POST(req: NextRequest) {
     lessonId: TeacherLessonId
     answers: Array<{ questionId: string; selectedIndex: number }>
     timeSpentSeconds: number
+    activityDate?: string
   }
 
   const { lessonId, answers: rawAnswers, timeSpentSeconds } = body
@@ -172,7 +173,9 @@ export async function POST(req: NextRequest) {
     console.error(`[assessment/POST] No default lesson found for engine lesson: ${lessonId}`)
   }
 
-  const activityDate = new Date().toISOString().slice(0, 10)
+  const activityDate = /^\d{4}-\d{2}-\d{2}$/.test(body.activityDate ?? '')
+    ? body.activityDate!
+    : new Date().toISOString().slice(0, 10)
   const { data: existingActivity } = await supabase
     .from('learning_activity')
     .select('study_minutes')
@@ -195,23 +198,20 @@ export async function POST(req: NextRequest) {
   // Upsert assessment result (one record per user+lesson; latest wins)
   const { data: result, error } = await supabase
     .from('assessment_results')
-    .upsert(
-      {
-        user_id:         user.id,
-        lesson_id:       lessonRow?.id ?? null,
-        lesson_key:      lessonId,
-        score:           scorePct,
-        correct:         correctCount,
-        total,
-        time_spent:      timeSpent,
-        answers:         answerRecords,
-        strong,
-        weak,
-        recommendations,
-        created_at:      new Date().toISOString(),
-      },
-      { onConflict: 'user_id,lesson_key' },
-    )
+    .insert({
+      user_id:         user.id,
+      lesson_id:       lessonRow?.id ?? null,
+      lesson_key:      lessonId,
+      score:           scorePct,
+      correct:         correctCount,
+      total,
+      time_spent:      timeSpent,
+      answers:         answerRecords,
+      strong,
+      weak,
+      recommendations,
+      created_at:      new Date().toISOString(),
+    })
     .select()
     .single()
 
