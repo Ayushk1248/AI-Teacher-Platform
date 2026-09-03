@@ -13,11 +13,12 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 export default async function DashboardPage() {
   const session = await auth()
   const firstName = session?.user?.name?.split(' ')[0] ?? 'there'
-  const [demoCourse, completedLessons, averageAssessment, studyStreak] = await Promise.all([
+  const [demoCourse, completedLessons, averageAssessment, studyStreak, conceptsMastered] = await Promise.all([
     getDemoCourse(),
     getCompletedLessonCount(),
     getAverageAssessment(),
     getStudyStreak(),
+    getConceptsMastered(),
   ])
   const dashboardStats = stats.map((stat) =>
     stat.label === 'Lessons completed'
@@ -30,6 +31,8 @@ export default async function DashboardPage() {
           }
         : stat.label === 'Study streak'
           ? { ...stat, value: `${studyStreak} days`, delta: 'Assessment activity' }
+        : stat.label === 'Concepts mastered'
+          ? { ...stat, value: String(conceptsMastered), delta: 'Strong assessment areas' }
         : stat,
   )
   return (
@@ -299,4 +302,33 @@ async function getStudyStreak() {
   }
 
   return streak
+}
+
+async function getConceptsMastered() {
+  const supabase = await createSupabaseServerClient()
+  if (!supabase) return 0
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 0
+
+  const { data } = await supabase
+    .from('assessment_results')
+    .select('strong')
+    .eq('user_id', user.id)
+
+  const masteredAreas = new Set<string>()
+  for (const result of data ?? []) {
+    const strongAreas = Array.isArray(result.strong) ? result.strong : []
+    for (const area of strongAreas) {
+      if (
+        area &&
+        typeof area.area === 'string' &&
+        Number(area.mastery) >= 70
+      ) {
+        masteredAreas.add(area.area)
+      }
+    }
+  }
+
+  return masteredAreas.size
 }
